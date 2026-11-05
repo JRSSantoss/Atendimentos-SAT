@@ -150,6 +150,17 @@
     .notice{position:fixed;bottom:20px;right:22px;max-width:460px;background:#223e56;color:white;padding:12px 17px;border-radius:8px;box-shadow:0 7px 30px #17304925;z-index:20;font-size:13px}
     @media(max-width:1000px){.form-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.stats{grid-template-columns:repeat(2,minmax(0,1fr))}.dash-grid{grid-template-columns:1fr}}
     @media(max-width:620px){.app{padding:0 13px 36px}.head-wrap{padding:22px 16px}.head-mark{display:none}header h1{font-size:22px}.form-grid{grid-template-columns:1fr;padding:17px}.panel-head{padding:17px 17px 0}.list-toolbar{padding:16px}.toolbar-actions{width:100%}.filter-input{width:100%}.toolbar-actions .filter-select{flex:1}.stats{gap:10px}.stat{padding:14px}.stat .stat-num{font-size:29px}.dash-panel{padding:17px}.donut-area{gap:10px}.donut{height:145px;width:145px;flex-basis:145px}.donut-inside{height:102px;width:102px}.donut-inside strong{font-size:23px}.footnote{display:block}}
+
+    /* Dashboard: filtro de período e exportação */
+    .dashboard-filter{display:flex;align-items:flex-end;justify-content:space-between;gap:18px;flex-wrap:wrap;padding:18px 21px;margin-bottom:18px}
+    .dashboard-filter-fields{display:flex;align-items:flex-end;gap:12px;flex-wrap:wrap}
+    .dashboard-filter-fields .field{min-width:157px}
+    .dashboard-filter-fields input[type="date"]{min-height:39px}
+    .dashboard-filter-actions{display:flex;align-items:center;gap:9px;flex-wrap:wrap}
+    .dashboard-period-caption{font-size:12px;color:var(--muted);margin:0 0 12px}
+    .dashboard-filter-error{color:#ae3838;font-size:12px;font-weight:650;flex:1 1 100%;margin:0}
+    .dashboard-filter .btn:disabled{opacity:.5;cursor:not-allowed}
+    @media(max-width:620px){.dashboard-filter{padding:15px;align-items:stretch}.dashboard-filter-fields{display:grid;grid-template-columns:1fr 1fr;gap:9px}.dashboard-filter-fields .field{min-width:0}.dashboard-filter-actions{width:100%}.dashboard-filter-actions .btn{flex:1}.dashboard-period-caption{line-height:1.5}}
   </style>
 </head>
 <body>
@@ -218,6 +229,18 @@
 
     <section id="dashboard" class="page hidden">
       <div class="dash-title"><h2>Indicadores de atendimento</h2><span>Atualização automática a cada alteração</span></div>
+      <div class="panel dashboard-filter" aria-label="Filtrar indicadores por período">
+        <div class="dashboard-filter-fields">
+          <label class="field"><span>Data inicial</span><input id="dashDateFrom" type="date" aria-label="Data inicial dos indicadores"></label>
+          <label class="field"><span>Data final</span><input id="dashDateTo" type="date" aria-label="Data final dos indicadores"></label>
+        </div>
+        <div class="dashboard-filter-actions">
+          <button type="button" id="clearDashDates" class="btn">Limpar período</button>
+          <button type="button" id="exportDashboardPdf" class="btn btn-primary">Exportar PDF</button>
+        </div>
+        <p id="dashFilterError" class="dashboard-filter-error hidden" role="alert">A data inicial não pode ser posterior à data final.</p>
+      </div>
+      <p id="dashboardPeriodCaption" class="dashboard-period-caption" aria-live="polite">Indicadores de todos os atendimentos cadastrados.</p>
       <div class="stats" aria-label="Indicadores principais">
         <div class="stat"><div class="stat-label">Total de atendimentos</div><div class="stat-num" id="totalStat">0</div></div>
         <div class="stat green"><div class="stat-label">Resolvidos</div><div class="stat-num" id="resolvedStat">0</div></div>
@@ -536,9 +559,51 @@
         }
         tbody.appendChild(fragment);
       }
+      // O dashboard usa exclusivamente a data de abertura do atendimento, no fuso local do navegador.
+      // Filtros são inclusivos: o último dia entra até 23:59:59.
+      function localDayKey(value) {
+        const date = new Date(value);
+        if (Number.isNaN(date.getTime())) return '';
+        const y = date.getFullYear();
+        const m = String(date.getMonth()+1).padStart(2,'0');
+        const d = String(date.getDate()).padStart(2,'0');
+        return `${y}-${m}-${d}`;
+      }
+      function dashDatesValid() {
+        const from=$('dashDateFrom').value, to=$('dashDateTo').value;
+        return !from || !to || from<=to;
+      }
+      function dashboardRecords() {
+        const from=$('dashDateFrom').value, to=$('dashDateTo').value;
+        if (!dashDatesValid()) return [];
+        if (!from && !to) return records;
+        return records.filter(r=>{
+          const day=localDayKey(r.createdAt);
+          return day && (!from || day>=from) && (!to || day<=to);
+        });
+      }
+      function dateBR(day){
+        if(!day)return '';
+        const [y,m,d]=day.split('-');
+        return `${d}/${m}/${y}`;
+      }
+      function dashboardPeriodLabel(){
+        const from=$('dashDateFrom').value, to=$('dashDateTo').value;
+        if (from && to) return `De ${dateBR(from)} até ${dateBR(to)}`;
+        if (from) return `A partir de ${dateBR(from)}`;
+        if (to) return `Até ${dateBR(to)}`;
+        return 'Todos os períodos';
+      }
       function updateDashboard() {
-        const total=records.length, resolved=records.filter(r=>r.status==='resolvido').length,
-          notResolved=records.filter(r=>r.status==='nao_resolvido').length, pending=records.filter(r=>r.status==='pendente').length;
+        const valid=dashDatesValid();
+        $('dashFilterError').classList.toggle('hidden',valid);
+        $('exportDashboardPdf').disabled=!valid || !dataReady;
+        const visibleRecords=dashboardRecords();
+        $('dashboardPeriodCaption').textContent=valid
+          ? `${dashboardPeriodLabel()} · ${visibleRecords.length} ${visibleRecords.length===1?'atendimento':'atendimentos'} no período (data de abertura).`
+          : 'Corrija as datas para visualizar os indicadores.';
+        const total=visibleRecords.length, resolved=visibleRecords.filter(r=>r.status==='resolvido').length,
+          notResolved=visibleRecords.filter(r=>r.status==='nao_resolvido').length, pending=visibleRecords.filter(r=>r.status==='pendente').length;
         const percentage = n => total ? Math.round(100*n/total) : 0;
         const resolvedPct=percentage(resolved), notResolvedPct=percentage(notResolved), pendingPct=percentage(pending);
         $('totalStat').textContent=total; $('resolvedStat').textContent=resolved;
@@ -562,13 +627,13 @@
           reasonsRoot.appendChild(textElement('p','Nenhum atendimento não resolvido registrado.','secondary'));
         } else {
           for (const reason of allowedReasons) {
-            const count=records.filter(r=>r.status==='nao_resolvido' && r.reason===reason).length;
+            const count=visibleRecords.filter(r=>r.status==='nao_resolvido' && r.reason===reason).length;
             if (!count) continue;
             const item=document.createElement('div'); item.className='reason-row';
             item.append(textElement('span',reason),textElement('strong',String(count)));
             reasonsRoot.appendChild(item);
           }
-          const missing=records.filter(r=>r.status==='nao_resolvido' && !r.reason).length;
+          const missing=visibleRecords.filter(r=>r.status==='nao_resolvido' && !r.reason).length;
           if (missing) {
             const item=document.createElement('div'); item.className='reason-row';
             item.append(textElement('span','Motivo ainda não informado (registro antigo)'),textElement('strong',String(missing)));
@@ -576,11 +641,11 @@
           }
         }
         const techRoot=$('techBreakdown'); techRoot.replaceChildren();
-        for (const tech of [...allowedTechnicians, ...(!records.some(r=>!r.technician) ? [] : [''])]) {
+        for (const tech of [...allowedTechnicians, ...(!visibleRecords.some(r=>!r.technician) ? [] : [''])]) {
           const row=document.createElement('tr');
           row.appendChild(textElement('td',tech || 'Não informado'));
           for (const state of ['resolvido','nao_resolvido','pendente']) {
-            row.appendChild(textElement('td',String(records.filter(r=>r.technician===tech && r.status===state).length)));
+            row.appendChild(textElement('td',String(visibleRecords.filter(r=>r.technician===tech && r.status===state).length)));
           }
           techRoot.appendChild(row);
         }
@@ -660,11 +725,155 @@
         if(id==='dashboard') updateDashboard();
       }));
       $('search').addEventListener('input',renderTable); $('filterStatus').addEventListener('change',renderTable); $('filterTechnician').addEventListener('change',renderTable);
+      $('dashDateFrom').addEventListener('change', updateDashboard);
+      $('dashDateFrom').addEventListener('input', updateDashboard);
+      $('dashDateTo').addEventListener('change', updateDashboard);
+      $('dashDateTo').addEventListener('input', updateDashboard);
+      $('clearDashDates').addEventListener('click',()=>{
+        $('dashDateFrom').value=''; $('dashDateTo').value=''; updateDashboard();
+      });
+
       function download(name,content,mime){
         const blob=new Blob([content],{type:mime}),url=URL.createObjectURL(blob);
         const a=document.createElement('a');a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();
         setTimeout(()=>URL.revokeObjectURL(url),1500);
       }
+      // Gera PDF A4 em uma página, sem serviços externos nem bibliotecas adicionais.
+      // O relatório é desenhado em canvas e incorporado como imagem JPEG em um PDF válido.
+      function makePdfBlob(canvas) {
+        const dataURL=canvas.toDataURL('image/jpeg',0.91);
+        const binary=atob(dataURL.slice(dataURL.indexOf(',')+1));
+        const jpeg=new Uint8Array(binary.length);
+        for(let i=0;i<binary.length;i++)jpeg[i]=binary.charCodeAt(i);
+        const enc=new TextEncoder(), parts=[], offsets=[0];
+        let length=0;
+        function put(v){ const bytes=typeof v==='string' ? enc.encode(v) : v; parts.push(bytes); length+=bytes.length; }
+        function object(id,content){offsets[id]=length;put(`${id} 0 obj\n${content}\nendobj\n`.replaceAll('\\n','\n'));}
+        put('%PDF-1.4\n%PDF-Generated\n');
+        object(1,'<< /Type /Catalog /Pages 2 0 R >>');
+        object(2,'<< /Type /Pages /Kids [3 0 R] /Count 1 >>');
+        object(3,'<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595.28 841.89] /Resources << /XObject << /Im1 4 0 R >> >> /Contents 5 0 R >>');
+        offsets[4]=length;
+        put(`4 0 obj\n<< /Type /XObject /Subtype /Image /Width ${canvas.width} /Height ${canvas.height} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${jpeg.length} >>\nstream\n`.replaceAll('\\n','\n'));
+        put(jpeg);
+        put('\nendstream\nendobj\n'.replaceAll('\\n','\n'));
+        const stream='q\n595.28 0 0 841.89 0 0 cm\n/Im1 Do\nQ\n'.replaceAll('\\n','\n');
+        object(5,`<< /Length ${enc.encode(stream).length} >>\nstream\n${stream}endstream`.replaceAll('\\n','\n'));
+        const xref=length;
+        put('xref\n0 6\n0000000000 65535 f \n'.replaceAll('\\n','\n'));
+        for(let i=1;i<=5;i++)put(`${String(offsets[i]).padStart(10,'0')} 00000 n \n`.replaceAll('\\n','\n'));
+        put(`trailer\n<< /Size 6 /Root 1 0 R >>\nstartxref\n${xref}\n%%EOF\n`.replaceAll('\\n','\n'));
+        return new Blob(parts,{type:'application/pdf'});
+      }
+      function generateDashboardPdf() {
+        if (!dataReady) return notify('Aguarde a conexão com o Firebase.',true);
+        if (!dashDatesValid()) return notify('Corrija o período selecionado antes de exportar.',true);
+        const entries=dashboardRecords();
+        const total=entries.length, resolved=entries.filter(r=>r.status==='resolvido').length,
+          notResolved=entries.filter(r=>r.status==='nao_resolvido').length,
+          pending=entries.filter(r=>r.status==='pendente').length;
+        const concluded=resolved+notResolved;
+        const rate=concluded ? Math.round(resolved/concluded*100) : null;
+        const rateText=rate===null ? 'Sem atendimentos concluídos' : `${rate}% dos concluídos (${resolved} de ${concluded})`;
+        const canvas=document.createElement('canvas');canvas.width=1240;canvas.height=1754;
+        const ctx=canvas.getContext('2d');
+        if(!ctx) return notify('Este navegador não suporta a exportação em PDF.',true);
+        const color={navy:'#172f48',blue:'#286990',orange:'#e98a36',ink:'#23384d',muted:'#65788b',border:'#dfe7ef',light:'#f4f7fa',green:'#159568',red:'#c64f50',amber:'#bc7d17',white:'#ffffff'};
+        const pad=68, usable=1104;
+        function rect(x,y,w,h,fill,r=0){ctx.fillStyle=fill;ctx.beginPath(); if(r)ctx.roundRect(x,y,w,h,r);else ctx.rect(x,y,w,h);ctx.fill();}
+        function stroke(x,y,w,h,stroke,r=0){ctx.strokeStyle=stroke;ctx.lineWidth=1.5;ctx.beginPath();if(r)ctx.roundRect(x,y,w,h,r);else ctx.rect(x,y,w,h);ctx.stroke();}
+        function txt(t,x,y,size=21,col=color.ink,weight='400',align='left'){
+          ctx.fillStyle=col;ctx.font=`${weight} ${size}px Arial, sans-serif`;ctx.textAlign=align;ctx.textBaseline='alphabetic';ctx.fillText(String(t),x,y);
+        }
+        function label(t,x,y){txt(t,x,y,18,color.muted,'700');}
+        function panel(x,y,w,h){rect(x,y,w,h,color.white,18);stroke(x,y,w,h,color.border,18);}
+        function line(x,y,w,col=color.border){rect(x,y,w,1.5,col);}
+        ctx.fillStyle=color.light;ctx.fillRect(0,0,1240,1754);
+        rect(0,0,1240,172,color.navy);
+        rect(68,38,8,94,color.orange,5);
+        txt('ASSISTÊNCIA TÉCNICA  /  SAT',95,69,18,'#f7bb7c','700');
+        txt('Relatório de indicadores',95,118,45,color.white,'700');
+        txt('Controle de Atendimentos',95,152,21,'#c8d8e7');
+        rect(pad,197,usable,84,color.white,14);stroke(pad,197,usable,84,color.border,14);
+        label('PERÍODO ANALISADO',90,229);
+        txt(dashboardPeriodLabel(),90,261,23,color.navy,'700');
+        const generated=new Date().toLocaleString('pt-BR',{dateStyle:'short',timeStyle:'short'});
+        txt('Gerado em '+generated,1148,257,18,color.muted,'400','right');
+        const stats=[['TOTAL',total,color.navy],['RESOLVIDOS',resolved,color.green],['NÃO RESOLVIDOS',notResolved,color.red],['PENDENTES',pending,color.amber]];
+        const gap=16, cw=(usable-3*gap)/4;
+        stats.forEach(([name,value,accent],i)=>{
+          const x=pad+i*(cw+gap);panel(x,310,cw,168);
+          rect(x+20,331,9,126,accent,5);label(name,x+43,358);txt(value,x+43,426,60,accent,'700');
+        });
+        panel(pad,505,usable,405);
+        txt('Distribuição dos atendimentos',95,553,28,color.navy,'700');
+        txt('Participação de cada situação no período selecionado',95,586,19,color.muted);
+        const cx=292,cy=744,r=116;
+        ctx.fillStyle='#e7edf3';ctx.beginPath();ctx.arc(cx,cy,r,0,Math.PI*2);ctx.fill();
+        if(total){let a=-Math.PI/2;
+          for(const [v,c] of [[resolved,color.green],[notResolved,color.red],[pending,color.orange]]){
+            if(!v)continue;
+            const end=a+(v/total)*Math.PI*2;
+            ctx.beginPath();ctx.moveTo(cx,cy);ctx.arc(cx,cy,r,a,end);ctx.closePath();ctx.fillStyle=c;ctx.fill();a=end;
+          }
+        }
+        ctx.fillStyle=color.white;ctx.beginPath();ctx.arc(cx,cy,77,0,Math.PI*2);ctx.fill();
+        txt(total,cx,752,45,color.navy,'700','center');txt('atendimentos',cx,781,17,color.muted,'400','center');
+        const segments=[['Resolvidos',resolved,color.green],['Não resolvidos',notResolved,color.red],['Pendentes',pending,color.orange]];
+        segments.forEach(([name,n,c],i)=>{
+          const y=657+i*86;
+          rect(494,y-20,15,15,c,4);txt(name,521,y-6,21,color.ink,'700');
+          txt(`${n}  (${total?Math.round(100*n/total):0}%)`,1132,y-6,21,color.navy,'700','right');
+          rect(521,y+13,610,13,'#e9f0f5',7);
+          if(n && total)rect(521,y+13,610*n/total,13,c,7);
+        });
+        panel(pad,938,usable,99);
+        txt('Taxa de resolução dos concluídos',95,981,23,color.navy,'700');
+        txt(rateText,1143,1001,30,color.green,'700','right');
+        const leftX=pad,leftW=650,rightX=735,rightW=437;
+        panel(leftX,1064,leftW,514); panel(rightX,1064,rightW,514);
+        txt('Motivos dos não resolvidos',95,1110,25,color.navy,'700');
+        txt('Quantidade por motivo no período',95,1140,18,color.muted);
+        const reasonCounts=allowedReasons.map(name=>[name,entries.filter(r=>r.status==='nao_resolvido' && r.reason===name).length]);
+        const missing=entries.filter(r=>r.status==='nao_resolvido' && !r.reason).length;
+        if(missing)reasonCounts.push(['Motivo não informado',missing]);
+        const shown=reasonCounts.filter(([,n])=>n);
+        if(!shown.length) txt('Nenhum motivo registrado.',95,1208,22,color.muted);
+        else shown.slice(0,9).forEach(([name,count],i)=>{
+          const y=1195+i*39;
+          if(i%2===0)rect(89,y-25,600,35,'#f5f8fa',5);
+          txt(name,101,y,18,color.ink);
+          txt(count,664,y,20,color.navy,'700','right');
+        });
+        txt('Resultados por técnico',760,1110,25,color.navy,'700');
+        txt('Atendimentos abertos no período',760,1140,17,color.muted);
+        rect(754,1169,395,42,color.navy,5);
+        txt('Técnico',766,1197,18,color.white,'700');
+        txt('Res.',952,1197,17,color.white,'700','right');
+        txt('Não res.',1047,1197,17,color.white,'700','right');
+        txt('Pend.',1139,1197,17,color.white,'700','right');
+        const people=[...allowedTechnicians];
+        if(entries.some(r=>!r.technician))people.push('');
+        people.forEach((tech,i)=>{
+          const y=1243+i*53;
+          if(i%2===0)rect(754,y-33,395,49,'#f5f8fa',4);
+          txt(tech||'Não informado',766,y,19,color.navy,'700');
+          for(const [col,state] of [[952,'resolvido'],[1047,'nao_resolvido'],[1139,'pendente']]){
+            txt(entries.filter(r=>r.technician===tech && r.status===state).length,col,y,19,color.ink,'700','right');
+          }
+        });
+        line(pad,1644,usable);
+        txt('SAT  •  Controle de Atendimentos',pad,1684,18,color.muted);
+        txt('Fonte: registros sincronizados no Firebase Firestore',1170,1684,17,color.muted,'400','right');
+        const blob=makePdfBlob(canvas);
+        const from=$('dashDateFrom').value||'inicio', to=$('dashDateTo').value||'fim';
+        const name=`indicadores_atendimentos_${from}_${to}.pdf`;
+        const url=URL.createObjectURL(blob);
+        const a=document.createElement('a');a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();
+        setTimeout(()=>URL.revokeObjectURL(url),60000);
+        notify('PDF do dashboard exportado com o período selecionado.');
+      }
+      $('exportDashboardPdf').addEventListener('click',generateDashboardPdf);
       function datedFilename(prefix,ext){return `${prefix}_${new Date().toISOString().slice(0,10)}.${ext}`;}
       function csvValue(value){
         let text=String(value??'');
