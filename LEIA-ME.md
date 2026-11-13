@@ -1,53 +1,35 @@
-# Controle de Atendimentos — online e SEM tela de login
+# Controle de Atendimentos SAT — V5: retornos e treinamento recente
 
-Esta versão conserva a interface V3, o cadastro de clientes e técnicos, motivo obrigatório de atendimento não resolvido, check/observações dentro dos detalhes (duplo clique) e o dashboard. O GitHub Pages serve os arquivos HTML/JS; o Firebase Firestore armazena e sincroniza os registros.
+## O que mudou
 
-## ⚠ Aviso de privacidade e segurança
+- **Registrar retorno**: dentro de Detalhes, abre um formulário para um novo contato pelo **mesmo problema**, com técnico, equipamento, status, motivo de não resolução, check, observações e treinamento recente. A data e hora do retorno são registradas automaticamente. O atendimento original não é sobrescrito.
+- **Novo problema**: dentro de Detalhes, preenche os dados do cliente no formulário de novo atendimento para um caso independente.
+- **Histórico cronológico**: contato inicial + retornos. É possível editar o resultado e as observações de cada retorno, preservando a data original daquele contato.
+- **Treinamento recente (opcional)**: Menos de 1 semana; Menos de 3 semanas; Menos de 1 mês; Menos de 6 meses. Deixe em branco para treinamentos antigos, desconhecidos ou não aplicáveis. Cada contato pode ter sua própria faixa.
+- **Dashboard**: dados separados de casos novos, contatos de retorno, casos com retorno registrado e casos resolvidos no primeiro contato sem retorno registrado até a exportação; resultados por técnico, motivos, distribuição por treinamento recente. O filtro por data considera a data **de cada contato**, inclusive retornos.
+- **PDF**: 2 páginas A4, com resumo dos contatos e indicadores de retornos/treinamento.
+- **Backups**: V5 inclui `records` e `returns`. Importa backups antigos V3/V4 (que só têm `records`).
+- **Arquivar / Restaurar**: substitui a exclusão definitiva para não perder o histórico. A tabela pode alternar entre Ativos e Arquivados. Arquivados não contam no dashboard.
 
-**Sem login não significa acesso restrito.** O navegador usa a Autenticação Anônima do Firebase automaticamente (sem tela de login), mas **qualquer pessoa que encontre o link poderá visualizar, modificar e excluir os dados**. As regras aqui incluídas validam o formato dos registros, mas **não impedem que visitantes anônimos tenham acesso**. A configuração Web do Firebase é pública e não é uma senha. **Não coloque dados reais ou confidenciais de clientes nesta versão sem login.** Para uso de trabalho com dados pessoais, habilite depois controle de acesso por usuários autorizados (ou outra camada de autenticação segura).
+## Publicar sem perder os dados
 
-## 1. Antes de migrar: backup da V3
+1. Abra Firebase Console → **projeto `controle-atendimentos-sat`** → Firestore Database → Regras.
+2. Copie as regras atuais para backup. Substitua pelo **`firestore.rules` deste pacote** e clique em **Publicar**. Isso libera a coleção `retornos` e os campos `trainingRecent` e `archived` no esquema do atendimento. **Não apague nem recrie a coleção `atendimentos`.**
+3. Entre no **repositório GitHub do Controle de Atendimentos SAT** (não é o repositório de Pedidos). Substitua apenas `index.html` pelo arquivo V5 e confirme o commit na branch que publica o GitHub Pages.
+4. Os arquivos `firebase-config.js` e `.nojekyll` podem permanecer como estão. Foram incluídos novamente neste pacote apenas para instalação nova.
+5. Atualize a página publicada com Ctrl+F5. Teste primeiro usando um registro fictício.
 
-No mesmo navegador e computador da versão offline V3, clique em **Backup** e salve o arquivo JSON. O novo endereço do GitHub Pages não lê automaticamente o localStorage da V3.
+## Como interpretar indicadores
 
-## 2. Configurar o Firebase
+- **Casos novos**: cada cadastro inicial (na data de abertura).
+- **Contatos de retorno**: cada retorno vinculado àquele caso (na data de retorno).
+- **Total de contatos**: casos iniciais + retornos dentro do filtro de datas.
+- **Casos com retorno registrado**: dos casos **abertos no período**, quantos têm retorno registrado em qualquer data, inclusive posterior ao período.
+- **Resolvidos no primeiro contato, sem retorno registrado**: dos casos **abertos no período**, aqueles cujo primeiro contato foi marcado como resolvido e que ainda não possuem retorno registrado. É um indicador observacional, não prova de resolução definitiva.
+- **Treinamento recente**: faixas classificatórias selecionadas pelo técnico. Não inclua treinamentos antigos ou de idade desconhecida; deixe em branco. Faixas não são somadas entre si.
 
-1. Abra https://console.firebase.google.com/ e crie **um projeto exclusivo** para esse painel. Separar projetos evita interferir nos outros sistemas.
-2. Entre em **Visão geral do projeto > Configurações do projeto > Seus aplicativos > Adicionar app da Web**. O arquivo `firebase-config.js` **já foi preenchido** com os valores do projeto `controle-atendimentos-sat`. Não é necessário editar essa configuração.
-3. Vá a **Authentication > Sign-in method** e **ative somente o provedor Anônimo** para este sistema. Não precisa adicionar usuários, e-mails, senhas ou UIDs. Atenção: isso não limita quem entra.
-4. Vá a **Firestore Database > Criar banco de dados**, escolha uma região e o modo **Produção**.
-5. Em **Firestore Database > Rules (Regras)**, substitua pelo conteúdo de `firestore.rules` e clique em **Publish**. Essas regras permitem acesso a visitantes anônimos somente à coleção `atendimentos`, com validação de formato. Não use `allow read, write: if true`.
-6. Se aparecer erro de domínio autorizado, confira **Authentication > Settings > Authorized domains** e adicione o domínio do GitHub Pages (`JRSSantoss.github.io`, se mantiver essa conta).
+## Segurança — importante
 
-## 3. Hospedar no GitHub Pages
+O SAT continua **sem tela de login**, utilizando Firebase Authentication anônimo. Os dados NÃO são privados: qualquer pessoa com acesso ao link pode ler e alterar informações, e a autenticação anônima **não identifica quem realizou cada alteração**. Use dados fictícios durante testes; não coloque telefones, nomes ou dados reais de clientes antes de restringir o acesso.
 
-1. Na conta GitHub, acesse https://github.com/new e crie um repositório novo, por exemplo `controle-atendimentos` (público para Pages no plano Free).
-2. Envie para a raiz do repositório: **`index.html`, `firebase-config.js`, `.nojekyll`** (já configurados para `controle-atendimentos-sat`). Você pode enviar também `LEIA-ME.md`; o arquivo `firestore.rules` deve ser aplicado no console do Firebase (é útil mantê-lo como referência no repositório).
-3. Em **Settings > Pages**, selecione **Deploy from a branch > main > / (root)** e salve.
-4. O endereço terá formato `https://SEU-USUARIO.github.io/controle-atendimentos/` depois de publicar. A página inicia sem pedir login; acessa automaticamente o Firebase.
-5. Faça um teste com dados fictícios, abra em outro navegador e confirme que os registros e o dashboard se sincronizam.
-
-## 4. Importar backup antigo
-
-1. Na V3, exporte o backup JSON.
-2. No site online, clique em **Importar backup** e selecione esse JSON.
-3. O processo adiciona apenas IDs ainda inexistentes, sem apagar registros já na nuvem.
-4. Confira os totais e o dashboard e mantenha cópias periódicas.
-
-## Funcionalidades
-
-- Cadastro rápido: nome/contato, empresa, telefone, técnico (João ou Ricardo).
-- Tabela concisa: data, cliente, empresa, telefone, técnico, equipamento, conclusão e ações.
-- Duplo clique na linha ou botão **Detalhes**: observações, check e motivo obrigatório de **Não resolvido**.
-- Gráficos e indicadores: total, resolvidos, não resolvidos, pendentes, motivos e resultados por técnico.
-- Filtros, exportação CSV, backup JSON, importação e sincronização em tempo real entre aparelhos.
-- **Sem tela de login**. Internet necessária para alterações confirmadas.
-
-## Diagnóstico
-
-- **Tela de configuração**: verifique `firebase-config.js` e a publicação no GitHub.
-- **Não foi possível conectar**: confira se ativou **Authentication > Anônimo** e a conexão à internet.
-- **Acesso negado**: confira o projeto, as regras publicadas e se o provedor Anônimo está ligado.
-- **Site abre mas registros não aparecem**: veja se o JSON da V3 foi importado e se os arquivos apontam para o mesmo projeto Firebase.
-
-Documentação oficial: https://firebase.google.com/docs/auth/web/anonymous-auth ; https://firebase.google.com/docs/rules/insecure-rules ; https://firebase.google.com/docs/firestore/query-data/listen ; https://docs.github.com/en/pages/getting-started-with-github-pages/configuring-a-publishing-source-for-your-github-pages-site
+Não foram feitas alterações no Firebase real ou no GitHub automaticamente: o pacote está pronto para publicação manual.

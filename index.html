@@ -161,6 +161,33 @@
     .dashboard-filter-error{color:#ae3838;font-size:12px;font-weight:650;flex:1 1 100%;margin:0}
     .dashboard-filter .btn:disabled{opacity:.5;cursor:not-allowed}
     @media(max-width:620px){.dashboard-filter{padding:15px;align-items:stretch}.dashboard-filter-fields{display:grid;grid-template-columns:1fr 1fr;gap:9px}.dashboard-filter-fields .field{min-width:0}.dashboard-filter-actions{width:100%}.dashboard-filter-actions .btn{flex:1}.dashboard-period-caption{line-height:1.5}}
+
+    /* Retornos e treinamento recente — V5 */
+    .record-details{width:min(790px,calc(100vw - 24px))}
+    .history-wrap{margin-top:3px;padding:16px;border:1px solid #dce7ee;border-radius:10px;background:#f8fafc}
+    .history-head{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+    .history-head strong{font-size:14px;color:var(--navy)}
+    .history-list{display:grid;gap:11px}
+    .history-item{border-left:3px solid #a7c2d4;background:#fff;padding:12px 13px;border-radius:0 9px 9px 0;box-shadow:0 1px 4px #172f480d}
+    .history-item.return{border-left-color:var(--orange)}
+    .history-item .history-title{display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap;font-weight:750;color:var(--navy)}
+    .history-item .history-meta{color:var(--muted);font-size:12px;margin-top:4px}
+    .history-item p{margin:7px 0 0;white-space:pre-wrap;overflow-wrap:anywhere;font-size:12px}
+    .mini-pill{display:inline-block;margin-left:5px;padding:2px 7px;border-radius:9px;font-size:10px;font-weight:750;background:#eaf1f7;color:#3a5b75}
+    .mini-pill.return{background:#fff0e1;color:#995c17}
+    .train-note{font-size:11px;color:var(--muted);margin:6px 0 0}
+    .metric-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:14px 0 20px}
+    .metric{padding:16px 18px}
+    .metric .metric-value{color:var(--navy);font-size:28px;line-height:1.2;font-weight:800;margin-top:6px}
+    .metric .metric-label{font-size:12px;color:var(--muted);font-weight:700}
+    .train-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:17px;margin-top:17px}
+    .history-empty{padding:12px;color:var(--muted);font-size:12px;border:1px dashed #d5e0e7;border-radius:8px}
+    .return-dialog{width:min(650px,calc(100vw - 26px));max-height:calc(100vh - 40px);overflow:auto}
+    .modal-actions{display:flex;gap:8px;flex-wrap:wrap}
+    .archived-note{font-size:11px;color:#805a26;margin-top:6px}
+    @media(max-width:930px){.metric-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.train-grid{grid-template-columns:1fr}}
+    @media(max-width:620px){.metric-grid{gap:8px}.metric{padding:12px}.metric .metric-value{font-size:23px}}
+
   </style>
 </head>
 <body>
@@ -192,7 +219,7 @@
     <div class="sync-line" role="status" aria-live="polite"><span id="syncIndicator" class="sync-indicator"></span><span id="syncStatus">Conectando ao banco de dados…</span></div>
     <section id="registros" class="page">
       <div class="panel">
-        <div class="panel-head"><h2>Novo atendimento</h2><p>Cadastre o cliente e o técnico responsável. Equipamento, conclusão e observações podem ser preenchidos depois.</p></div>
+        <div class="panel-head"><h2>Novo atendimento</h2><p>Cadastre o primeiro contato. Os retornos pelo mesmo problema ficam registrados dentro dele, sem apagar o resultado inicial.</p></div>
         <form id="newForm" class="form-grid">
           <label class="field"><span>Nome do cliente / contato *</span><input id="client" name="client" placeholder="Ex.: João Silva" maxlength="160" autocomplete="off" required></label>
           <label class="field"><span>Empresa *</span><input id="company" name="company" placeholder="Ex.: Indústria ABC" maxlength="160" autocomplete="organization" required></label>
@@ -209,13 +236,14 @@
             <input id="search" class="filter-input" type="search" placeholder="Buscar cliente, empresa, telefone..." aria-label="Buscar atendimentos">
             <select id="filterTechnician" class="filter-select" aria-label="Filtrar por técnico"><option value="todos">Todos os técnicos</option><option value="João">João</option><option value="Ricardo">Ricardo</option><option value="">Não informado</option></select>
             <select id="filterStatus" class="filter-select" aria-label="Filtrar por situação"><option value="todos">Todos os status</option><option value="pendente">Pendentes</option><option value="resolvido">Resolvidos</option><option value="nao_resolvido">Não resolvidos</option></select>
+            <select id="filterArchive" class="filter-select" aria-label="Visualizar atendimentos ativos ou arquivados"><option value="ativos">Ativos</option><option value="arquivados">Arquivados</option></select>
             <button id="exportCsv" class="btn btn-sm btn-ghost" type="button">Exportar CSV</button>
             <button id="backupJson" class="btn btn-sm btn-ghost" type="button" title="Salvar cópia completa, inclusive observações">Backup</button>
             <button id="importJson" class="btn btn-sm btn-ghost" type="button" title="Adicionar atendimentos de um backup, sem apagar os existentes">Importar backup</button>
             <input id="backupFile" type="file" accept=".json,application/json" class="hidden">
           </div>
         </div>
-        <p class="table-hint">Dê <strong>dois cliques</strong> em um atendimento para abrir os detalhes, motivo, check e observações. No celular, use o botão “Detalhes”.</p>
+        <p class="table-hint">Dê <strong>dois cliques</strong> para abrir detalhes, histórico de contatos, retornos e treinamento recente. No celular, use o botão “Detalhes”.</p>
         <div class="table-wrap">
           <table aria-label="Tabela de atendimentos">
             <thead><tr><th>Data</th><th>Cliente</th><th>Empresa</th><th>Telefone</th><th>Técnico</th><th>Equipamento</th><th>Conclusão</th><th>Ações</th></tr></thead>
@@ -224,7 +252,7 @@
           <div id="emptyState" class="empty hidden"><strong>Nenhum atendimento encontrado</strong><span>Adicione um atendimento acima ou ajuste os filtros.</span></div>
         </div>
       </div>
-      <div class="footnote"><span>Atendimentos compartilhados no Firebase Firestore.</span><span>Exporte backups periódicos em JSON para segurança adicional.</span></div>
+      <div class="footnote"><span>Contatos e retornos sincronizados no Firebase Firestore.</span><span>Exporte backups periódicos em JSON para segurança adicional.</span></div>
     </section>
 
     <section id="dashboard" class="page hidden">
@@ -240,17 +268,23 @@
         </div>
         <p id="dashFilterError" class="dashboard-filter-error hidden" role="alert">A data inicial não pode ser posterior à data final.</p>
       </div>
-      <p id="dashboardPeriodCaption" class="dashboard-period-caption" aria-live="polite">Indicadores de todos os atendimentos cadastrados.</p>
+      <p id="dashboardPeriodCaption" class="dashboard-period-caption" aria-live="polite">Indicadores de todos os contatos, incluindo retornos pelo mesmo problema.</p>
       <div class="stats" aria-label="Indicadores principais">
-        <div class="stat"><div class="stat-label">Total de atendimentos</div><div class="stat-num" id="totalStat">0</div></div>
+        <div class="stat"><div class="stat-label">Total de contatos (com retornos)</div><div class="stat-num" id="totalStat">0</div></div>
         <div class="stat green"><div class="stat-label">Resolvidos</div><div class="stat-num" id="resolvedStat">0</div></div>
         <div class="stat red"><div class="stat-label">Não resolvidos</div><div class="stat-num" id="notResolvedStat">0</div></div>
         <div class="stat amber"><div class="stat-label">Pendentes</div><div class="stat-num" id="pendingStat">0</div></div>
       </div>
+      <div class="metric-grid" aria-label="Indicadores de retornos e reincidência">
+        <article class="panel metric"><div class="metric-label">Casos novos no período</div><div class="metric-value" id="newCasesStat">0</div></article>
+        <article class="panel metric"><div class="metric-label">Contatos de retorno</div><div class="metric-value" id="returnsStat">0</div></article>
+        <article class="panel metric"><div class="metric-label">Casos com retorno registrado</div><div class="metric-value" id="casesWithReturnStat">0</div></article>
+        <article class="panel metric"><div class="metric-label">Resolvidos no 1º contato, sem retorno registrado</div><div class="metric-value" id="firstContactStat">0</div></article>
+      </div>
       <div class="dash-grid">
-        <article class="panel dash-panel"><h3>Distribuição dos atendimentos</h3><p>Participação de cada situação no total de registros.</p>
+        <article class="panel dash-panel"><h3>Distribuição dos contatos</h3><p>Participação de cada situação nos contatos registrados.</p>
           <div class="donut-area">
-            <div class="donut" id="donut" role="img" aria-label="Gráfico de distribuição de atendimentos"><div class="donut-inside"><strong id="donutCount">0</strong><small>atendimentos</small></div></div>
+            <div class="donut" id="donut" role="img" aria-label="Gráfico de distribuição de atendimentos"><div class="donut-inside"><strong id="donutCount">0</strong><small>contatos</small></div></div>
             <div class="legend">
               <div class="legend-item"><span class="legend-name"><i class="legend-bullet" style="background:var(--green)"></i> Resolvidos</span><strong id="resolvedShare">0%</strong></div>
               <div class="legend-item"><span class="legend-name"><i class="legend-bullet" style="background:var(--red)"></i> Não resolvidos</span><strong id="notResolvedShare">0%</strong></div>
@@ -258,27 +292,31 @@
             </div>
           </div>
         </article>
-        <article class="panel dash-panel"><h3>Comparativo de resultados</h3><p>Quantidade de atendimentos por situação.</p>
+        <article class="panel dash-panel"><h3>Comparativo de resultados</h3><p>Quantidade de contatos por situação.</p>
           <div class="bars">
             <div><div class="bar-head"><span>Resolvidos</span><strong id="barResolvedNumber">0</strong></div><div class="track"><div id="barResolved" class="bar green"></div></div></div>
             <div><div class="bar-head"><span>Não resolvidos</span><strong id="barNotResolvedNumber">0</strong></div><div class="track"><div id="barNotResolved" class="bar red"></div></div></div>
             <div><div class="bar-head"><span>Pendentes</span><strong id="barPendingNumber">0</strong></div><div class="track"><div id="barPending" class="bar amber"></div></div></div>
           </div>
-          <div class="dash-footer"><strong id="rateText">Taxa de resolução dos concluídos: 0%</strong><div style="margin-top:3px">Calculada apenas entre os atendimentos marcados como resolvidos ou não resolvidos.</div></div>
+          <div class="dash-footer"><strong id="rateText">Taxa de resolução dos concluídos: 0%</strong><div style="margin-top:3px">Calculada entre os contatos concluídos, incluindo retornos.</div></div>
         </article>
       </div>
       <div class="dash-grid">
-        <article class="panel dash-panel"><h3>Motivos dos não resolvidos</h3><p>Quantidade de atendimentos registrados em cada motivo.</p><div id="reasonBreakdown" class="reason-list"></div></article>
-        <article class="panel dash-panel"><h3>Resultados por técnico</h3><p>Comparação simples dos atendimentos de João e Ricardo.</p>
+        <article class="panel dash-panel"><h3>Motivos dos não resolvidos</h3><p>Quantidade de contatos não resolvidos por motivo.</p><div id="reasonBreakdown" class="reason-list"></div></article>
+        <article class="panel dash-panel"><h3>Resultados por técnico</h3><p>Comparação dos contatos registrados por João e Ricardo.</p>
           <table class="tech-table"><thead><tr><th>Técnico</th><th>Resolvidos</th><th>Não resolvidos</th><th>Pendentes</th></tr></thead><tbody id="techBreakdown"></tbody></table>
         </article>
+      </div>
+      <div class="train-grid">
+        <article class="panel dash-panel"><h3>Treinamento recente × contatos</h3><p>Período selecionado em cada contato. Campo opcional; as faixas são categorias declaradas, sem sobreposição na contagem.</p><div id="trainingBreakdown" class="reason-list"></div></article>
+        <article class="panel dash-panel"><h3>Resultado nos contatos com treinamento recente</h3><p>Considera somente contatos com faixa informada.</p><div id="trainingOutcome" class="reason-list"></div><p class="train-note">Sem seleção = treinamento antigo, desconhecido ou não aplicável. Não é classificado como recente.</p></article>
       </div>
     </section>
   </div>
 
   <dialog id="detailsDialog" class="record-details" aria-labelledby="detailsTitle">
     <form id="detailsForm">
-      <div class="dialog-head"><h2 id="detailsTitle">Detalhes do atendimento</h2><p>Registre a conclusão, o motivo, a conferência e as observações.</p></div>
+      <div class="dialog-head"><h2 id="detailsTitle">Detalhes do atendimento</h2><p>Este é o contato inicial. Os retornos aparecem na linha do tempo, sem alterar os registros anteriores.</p></div>
       <div class="dialog-body">
         <div class="details-meta" aria-label="Identificação do atendimento">
           <div><small>CLIENTE / CONTATO</small><strong id="detailsClient"></strong></div>
@@ -306,11 +344,37 @@
           <option value="Procedimentos incorretos">Procedimentos incorretos</option>
           <option value="Sem continuidade do atendimento">Sem continuidade do atendimento</option>
         </select></label>
+        <label class="field"><span>Treinamento recente (opcional)</span><select id="detailsTrainingRecent"><option value="">Não informado / não se aplica</option><option value="Menos de 1 semana">Menos de 1 semana</option><option value="Menos de 3 semanas">Menos de 3 semanas</option><option value="Menos de 1 mês">Menos de 1 mês</option><option value="Menos de 6 meses">Menos de 6 meses</option></select><span class="train-note">Selecione a faixa correspondente ao treinamento do operador na data deste contato.</span></label>
+
         <hr class="detail-separator">
         <label class="detail-check"><input id="detailsChecked" type="checkbox"><span>Check de conferência<small>Marque quando tiver realizado a conferência desejada.</small></span></label>
         <label class="field"><span>Observações do atendimento</span><textarea id="detailsNotes" maxlength="10000" placeholder="Descreva o problema, procedimentos realizados, orientações, próximos passos..."></textarea></label>
+        <section class="history-wrap" aria-label="Histórico de contatos">
+          <div class="history-head"><strong>Histórico de contatos deste problema</strong><button type="button" id="registerReturnBtn" class="btn btn-sm btn-orange">+ Registrar retorno</button></div>
+          <div id="historyList" class="history-list"></div>
+          <p class="train-note">Mesmo problema: registre um retorno. Problema diferente: crie um novo atendimento vinculado ao cliente.</p>
+          <div class="modal-actions" style="margin-top:12px"><button type="button" id="newRelatedCaseBtn" class="btn btn-sm">+ Novo problema para este cliente</button></div>
+        </section>
       </div>
       <div class="dialog-footer"><button type="button" class="btn" data-close="detailsDialog">Cancelar</button><button type="submit" class="btn btn-primary">Salvar detalhes</button></div>
+    </form>
+  </dialog>
+
+  <dialog id="returnDialog" class="return-dialog" aria-labelledby="returnDialogTitle">
+    <form id="returnForm">
+      <div class="dialog-head"><h2 id="returnDialogTitle">Registrar retorno</h2><p>Um novo contato pelo mesmo problema, com data e resultado próprios. Os anteriores serão preservados.</p></div>
+      <div class="dialog-body">
+        <div class="details-fields">
+          <label class="field"><span>Técnico responsável *</span><select id="returnTechnician" required><option value="João">João</option><option value="Ricardo">Ricardo</option></select></label>
+          <label class="field"><span>Conclusão</span><select id="returnStatus"><option value="pendente">Pendente</option><option value="resolvido">Resolvido</option><option value="nao_resolvido">Não resolvido</option></select></label>
+          <label class="field"><span>Equipamento</span><input id="returnEquipment" maxlength="160" placeholder="Equipamento relacionado"></label>
+          <label class="field"><span>Treinamento recente (opcional)</span><select id="returnTrainingRecent"><option value="">Não informado / não se aplica</option><option value="Menos de 1 semana">Menos de 1 semana</option><option value="Menos de 3 semanas">Menos de 3 semanas</option><option value="Menos de 1 mês">Menos de 1 mês</option><option value="Menos de 6 meses">Menos de 6 meses</option></select></label>
+        </div>
+        <label class="field hidden" id="returnReasonField"><span>Motivo do não resolvido *</span><select id="returnReason"><option value="">Selecione o motivo...</option><option>Manutenção eletrônica</option><option>Manutenção mecânica</option><option>Falta de itens</option><option>Itens incorretos</option><option>Cartucho Vencido</option><option>Cartucho Avariado</option><option>Procedimentos incorretos</option><option>Sem continuidade do atendimento</option></select></label>
+        <label class="detail-check"><input id="returnChecked" type="checkbox"><span>Check de conferência</span></label>
+        <label class="field"><span>Observações deste contato</span><textarea id="returnNotes" maxlength="10000" placeholder="O que o cliente relatou, os testes e as orientações neste retorno..."></textarea></label>
+      </div>
+      <div class="dialog-footer"><button class="btn" type="button" data-close="returnDialog">Cancelar</button><button class="btn btn-primary" type="submit" id="returnSubmit">Salvar retorno</button></div>
     </form>
   </dialog>
 
@@ -332,7 +396,7 @@
   <script type="module">
     import { initializeApp } from 'https://www.gstatic.com/firebasejs/13.2.0/firebase-app.js';
     import { getAuth, onAuthStateChanged, signInAnonymously, signOut } from 'https://www.gstatic.com/firebasejs/13.2.0/firebase-auth.js';
-    import { getFirestore, collection, doc, setDoc, updateDoc, deleteDoc, onSnapshot, writeBatch } from 'https://www.gstatic.com/firebasejs/13.2.0/firebase-firestore.js';
+    import { getFirestore, collection, doc, setDoc, updateDoc, onSnapshot, writeBatch, getDocs, getDoc } from 'https://www.gstatic.com/firebasejs/13.2.0/firebase-firestore.js';
     import firebaseConfig from './firebase-config.js';
     (() => {
       'use strict';
@@ -340,6 +404,12 @@
       const allowedStatuses = ['pendente', 'resolvido', 'nao_resolvido'];
       const allowedTechnicians = ['João', 'Ricardo'];
       const allowedReasons = ['Manutenção eletrônica','Manutenção mecânica','Falta de itens','Itens incorretos','Cartucho Vencido','Cartucho Avariado','Procedimentos incorretos','Sem continuidade do atendimento'];
+      const recentTrainingOptions = ['Menos de 1 semana', 'Menos de 3 semanas', 'Menos de 1 mês', 'Menos de 6 meses'];
+      let returns = [];
+      let activeReturnId = null;
+      let unsubscribeReturns = null;
+      let returnsReady = false;
+      let recordsReady = false;
       let records = [];
       let activeRecordId = null;
       let noticeTimeout;
@@ -369,16 +439,43 @@
           status,
           reason: status === 'nao_resolvido' && allowedReasons.includes(r.reason) ? r.reason : '',
           checked: r.checked === true,
-          notes: String(r.notes ?? '').slice(0, 10000)
+          notes: String(r.notes ?? '').slice(0, 10000),
+          trainingRecent: recentTrainingOptions.includes(r.trainingRecent) ? r.trainingRecent : '',
+          archived: r.archived === true
         };
       }
+      function cleanReturn(r) {
+        if (!r || typeof r !== 'object' || !String(r.atendimentoId || '')) return null;
+        const status = allowedStatuses.includes(r.status) ? r.status : 'pendente';
+        return {
+          id: /^[A-Za-z0-9_-]{1,100}$/.test(String(r.id || '')) ? String(r.id) : uid(),
+          atendimentoId: String(r.atendimentoId),
+          createdAt: typeof r.createdAt === 'string' && !Number.isNaN(Date.parse(r.createdAt)) ? r.createdAt : new Date().toISOString(),
+          technician: allowedTechnicians.includes(r.technician) ? r.technician : '',
+          equipment: String(r.equipment ?? '').slice(0, 160), status,
+          reason: status === 'nao_resolvido' && allowedReasons.includes(r.reason) ? r.reason : '',
+          checked: r.checked === true,
+          notes: String(r.notes ?? '').slice(0, 10000),
+          trainingRecent: recentTrainingOptions.includes(r.trainingRecent) ? r.trainingRecent : ''
+        };
+      }
+      function caseReturns(caseId) { return returns.filter(r => r.atendimentoId === caseId).sort((a,b) => a.createdAt.localeCompare(b.createdAt)); }
+      function latestContact(r) { const items=caseReturns(r.id); return items.length ? {...items[items.length-1],isReturn:true} : {...r,isReturn:false}; }
+      function allContacts() {
+        const activeIds = new Set(records.filter(r=>!r.archived).map(r=>r.id));
+        return [
+          ...records.filter(r=>!r.archived).map(r=>({...r,isReturn:false,atendimentoId:r.id})),
+          ...returns.filter(r=>activeIds.has(r.atendimentoId)).map(r=>({...r,isReturn:true}))
+        ];
+      }
+
       function setSync(label, level='loading') {
         $('syncStatus').textContent = label;
         $('syncIndicator').className = 'sync-indicator' + (level === 'online' ? ' online' : level === 'offline' ? ' offline' : '');
       }
       function readableError(error) {
         const code = error?.code || '';
-        if (code === 'permission-denied') return 'Acesso negado pelo Firestore. Publique as regras do arquivo firestore.rules no projeto Firebase correto.';
+        if (code === 'permission-denied') return 'Acesso negado pelo Firestore. Publique as regras V5 que incluem a coleção retornos no projeto SAT.';
         if (code === 'auth/operation-not-allowed') return 'Ative a opção Anônimo em Firebase Authentication > Sign-in method.';
         if (code === 'auth/too-many-requests') return 'O Firebase limitou os acessos anônimos temporariamente. Tente novamente mais tarde.';
         if (code === 'auth/network-request-failed' || code === 'unavailable') return 'Falha de conexão com o Firebase. Verifique a internet.';
@@ -390,12 +487,25 @@
       }
       async function removeOnline(id) {
         if (!db || !activeUser || !dataReady) throw new Error('Aguarde a conexão com o banco de dados.');
-        await deleteDoc(doc(db, 'atendimentos', id));
+        await updateDoc(doc(db, 'atendimentos', id), {archived:true});
+      }
+      async function restoreOnline(id) {
+        if (!db || !activeUser || !dataReady) throw new Error('Aguarde a conexão com o banco de dados.');
+        await updateDoc(doc(db, 'atendimentos', id), {archived:false});
+      }
+      async function saveReturnOnline(item) {
+        if (!db || !activeUser || !dataReady || !returnsReady) throw new Error('Aguarde a sincronização dos contatos.');
+        await setDoc(doc(db, 'retornos', item.id), item);
+      }
+      async function updateReturnOnline(id, changes) {
+        if (!db || !activeUser || !dataReady || !returnsReady) throw new Error('Aguarde a sincronização dos retornos.');
+        await updateDoc(doc(db, 'retornos', id), changes);
       }
       function stopListening() {
         listenGeneration++;
         if (unsubscribeRecords) { unsubscribeRecords(); unsubscribeRecords = null; }
-        dataReady = false; records = []; redraw();
+        if (unsubscribeReturns) { unsubscribeReturns(); unsubscribeReturns = null; }
+        dataReady = false; returnsReady = false; recordsReady = false; records = []; returns = []; redraw();
       }
       function listenToOnlineRecords() {
         stopListening();
@@ -404,8 +514,9 @@
         unsubscribeRecords = onSnapshot(collection(db, 'atendimentos'), { includeMetadataChanges: true }, snapshot => {
           if (generation !== listenGeneration) return;
           records = snapshot.docs.map(d => cleanRecord({ ...d.data(), id: d.id })).filter(Boolean);
-          dataReady = !snapshot.metadata.fromCache;
-          if (snapshot.metadata.fromCache) setSync('Exibindo cache: aguarde a sincronização com a nuvem.', 'offline');
+          recordsReady = !snapshot.metadata.fromCache;
+          dataReady = recordsReady && returnsReady;
+          if (snapshot.metadata.fromCache || !returnsReady) setSync('Sincronizando atendimentos e retornos…', 'offline');
           else if (snapshot.metadata.hasPendingWrites) setSync('Alterações sendo enviadas ao Firebase…');
           else setSync('Sincronizado com o Firebase · dados compartilhados', 'online');
           redraw();
@@ -414,6 +525,20 @@
           dataReady = false;
           setSync(readableError(error), 'offline');
           notify(readableError(error), true);
+        });
+        unsubscribeReturns = onSnapshot(collection(db, 'retornos'), {includeMetadataChanges:true}, snapshot=>{
+          if (generation !== listenGeneration) return;
+          returns = snapshot.docs.map(d=>cleanReturn({...d.data(),id:d.id})).filter(Boolean);
+          returnsReady = !snapshot.metadata.fromCache;
+          dataReady = recordsReady && returnsReady;
+          if (snapshot.metadata.fromCache || snapshot.metadata.hasPendingWrites) setSync('Sincronizando retornos com o Firebase…');
+          else setSync('Atendimentos e retornos sincronizados · Firebase','online');
+          redraw();
+          if ($('detailsDialog').open && activeRecordId) renderHistory(activeRecordId);
+        }, error=>{
+          if(generation!==listenGeneration)return;
+          returnsReady = false; dataReady = false;
+          setSync(readableError(error),'offline');notify(readableError(error),true);
         });
       }
       function showConnectionError(error) {
@@ -490,9 +615,11 @@
         const query = $('search').value.trim().toLocaleLowerCase('pt-BR');
         const status = $('filterStatus').value;
         const technician = $('filterTechnician').value;
+        const archiveFilter = $('filterArchive').value;
         const filtered = records.filter(r =>
-          (status === 'todos' || r.status === status) &&
-          (technician === 'todos' || (r.technician || '') === technician) &&
+          (archiveFilter === 'arquivados' ? r.archived : !r.archived) &&
+          (status === 'todos' || latestContact(r).status === status) &&
+          (technician === 'todos' || (latestContact(r).technician || '') === technician) &&
           (!query || [r.client, r.company, r.phone, r.technician, r.equipment, r.reason, r.notes].some(v => v.toLocaleLowerCase('pt-BR').includes(query)))
         ).sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt));
         const tbody = $('recordsBody'); tbody.replaceChildren();
@@ -512,55 +639,72 @@
             if (e.target === tr && (e.key === 'Enter' || e.key === ' ')) {e.preventDefault();openDetails(record.id);}
           });
           const tdDate = document.createElement('td'); tdDate.appendChild(textElement('span', formatDate(record.createdAt))); tr.appendChild(tdDate);
-          const tdClient = document.createElement('td'); tdClient.appendChild(textElement('div', record.client, 'client-name')); tr.appendChild(tdClient);
+          const tdClient = document.createElement('td'); tdClient.appendChild(textElement('div', record.client, 'client-name'));
+          const countReturns = caseReturns(record.id).length;
+          if (countReturns) tdClient.appendChild(textElement('span', `${countReturns} retorno${countReturns===1?'':'s'}`, 'mini-pill return'));
+          if (record.archived) tdClient.appendChild(textElement('div', 'Arquivado · histórico preservado', 'archived-note'));
+          tr.appendChild(tdClient);
           const tdCompany = document.createElement('td'); tdCompany.textContent = record.company; tr.appendChild(tdCompany);
           const tdPhone = document.createElement('td'); tdPhone.textContent = record.phone; tr.appendChild(tdPhone);
-          const tdTech = document.createElement('td'); tdTech.textContent = record.technician || 'Não informado'; tr.appendChild(tdTech);
+          const current = latestContact(record);
+          const tdTech = document.createElement('td'); tdTech.textContent = current.technician || 'Não informado'; tr.appendChild(tdTech);
 
           const tdEquip = document.createElement('td');
-          const equipment = document.createElement('input'); equipment.className='cell-input'; equipment.value=record.equipment;
-          equipment.maxLength=160; equipment.placeholder='Preencher depois'; equipment.setAttribute('aria-label', `Equipamento de ${record.client}`);
+          const equipment = document.createElement('input'); equipment.className='cell-input';
+          equipment.maxLength=160; equipment.placeholder='Preencher depois'; equipment.value=current.equipment;
+          equipment.disabled=record.archived;
+          equipment.setAttribute('aria-label', `Equipamento do contato mais recente de ${record.client}`);
           equipment.addEventListener('change', async () => {
-            if (await updateRecord(record.id, {equipment:equipment.value.trim()})) notify('Equipamento atualizado na nuvem.');
+            try {
+              if (current.isReturn) await updateReturnOnline(current.id,{equipment:equipment.value.trim()});
+              else await updateRecord(record.id, {equipment:equipment.value.trim()});
+              notify('Equipamento atualizado na nuvem.');
+            } catch(error) {notify(readableError(error),true);}
           });
           tdEquip.appendChild(equipment); tr.appendChild(tdEquip);
 
           const tdStatus = document.createElement('td'); const select = document.createElement('select');
-          select.className='cell-select'; select.dataset.status=record.status;
+          select.className='cell-select'; select.dataset.status=current.status; select.disabled=record.archived;
           select.setAttribute('aria-label', `Conclusão de ${record.client}`);
           [['pendente','Pendente'],['resolvido','Resolvido'],['nao_resolvido','Não resolvido']].forEach(([value,label]) => {
             const option = document.createElement('option'); option.value=value; option.textContent=label; select.appendChild(option);
           });
-          select.value=record.status;
+          select.value=current.status;
           select.addEventListener('change', async () => {
             if (select.value === 'nao_resolvido') {
-              // Só aplica "Não resolvido" depois que o usuário informar um motivo.
-              select.value = record.status;
-              openDetails(record.id, 'nao_resolvido');
+              select.value=current.status;
+              if (current.isReturn) openReturnDialog(record.id,current.id,'nao_resolvido');
+              else openDetails(record.id,'nao_resolvido');
               return;
             }
-            const ok = await updateRecord(record.id,{status:select.value,reason:''});
-            if (ok) notify('Conclusão atualizada na nuvem.');
+            try {
+              if (current.isReturn) await updateReturnOnline(current.id,{status:select.value,reason:''});
+              else await updateRecord(record.id,{status:select.value,reason:''});
+              notify('Conclusão do contato mais recente atualizada.');
+            } catch(error) { notify(readableError(error),true); redraw(); }
           });
           tdStatus.appendChild(select); tr.appendChild(tdStatus);
 
           const tdActions=document.createElement('td'); const actionRow=document.createElement('div'); actionRow.className='action-buttons';
           const details=textElement('button','Detalhes','btn btn-sm btn-primary'); details.type='button';
-          details.title='Abrir check, observações e motivo'; details.addEventListener('click',()=>openDetails(record.id));
-          const edit=textElement('button','Editar','btn btn-sm'); edit.type='button'; edit.addEventListener('click', () => openEdit(record.id));
-          const del=textElement('button','Excluir','btn btn-sm btn-danger'); del.type='button';
+          details.title='Abrir histórico, retornos e treinamento recente'; details.addEventListener('click',()=>openDetails(record.id));
+          const edit=textElement('button','Editar','btn btn-sm'); edit.type='button'; edit.disabled=record.archived; edit.addEventListener('click', () => openEdit(record.id));
+          const del=textElement('button',record.archived?'Restaurar':'Arquivar','btn btn-sm btn-danger'); del.type='button';
           del.addEventListener('click', async () => {
-            if (!window.confirm(`Excluir o atendimento de ${record.client} (${record.company})? Esta ação não pode ser desfeita.`)) return;
-            try { await removeOnline(record.id); notify('Atendimento excluído do Firebase.'); }
-            catch(error) { notify(readableError(error), true); }
+            const action=record.archived?'restaurar':'arquivar';
+            if (!window.confirm(`${record.archived?'Restaurar':'Arquivar'} o atendimento de ${record.client}? O histórico de contatos será preservado.`)) return;
+            try {
+              if(record.archived) await restoreOnline(record.id); else await removeOnline(record.id);
+              notify(`Atendimento ${action==='arquivar'?'arquivado':'restaurado'} na nuvem.`);
+            } catch(error) { notify(readableError(error), true); }
           });
           actionRow.append(details,edit,del); tdActions.appendChild(actionRow); tr.appendChild(tdActions);
           fragment.appendChild(tr);
         }
         tbody.appendChild(fragment);
       }
-      // O dashboard usa exclusivamente a data de abertura do atendimento, no fuso local do navegador.
-      // Filtros são inclusivos: o último dia entra até 23:59:59.
+      // Filtro inclusivo pela data de cada contato: abertura do caso ou registro do retorno.
+      // Retornos não alteram o status histórico do primeiro contato.
       function localDayKey(value) {
         const date = new Date(value);
         if (Number.isNaN(date.getTime())) return '';
@@ -576,8 +720,9 @@
       function dashboardRecords() {
         const from=$('dashDateFrom').value, to=$('dashDateTo').value;
         if (!dashDatesValid()) return [];
-        if (!from && !to) return records;
-        return records.filter(r=>{
+        const contacts=allContacts();
+        if (!from && !to) return contacts;
+        return contacts.filter(r=>{
           const day=localDayKey(r.createdAt);
           return day && (!from || day>=from) && (!to || day<=to);
         });
@@ -600,7 +745,7 @@
         $('exportDashboardPdf').disabled=!valid || !dataReady;
         const visibleRecords=dashboardRecords();
         $('dashboardPeriodCaption').textContent=valid
-          ? `${dashboardPeriodLabel()} · ${visibleRecords.length} ${visibleRecords.length===1?'atendimento':'atendimentos'} no período (data de abertura).`
+          ? `${dashboardPeriodLabel()} · ${visibleRecords.length} ${visibleRecords.length===1?'contato':'contatos'} no período (data de cada contato).`
           : 'Corrija as datas para visualizar os indicadores.';
         const total=visibleRecords.length, resolved=visibleRecords.filter(r=>r.status==='resolvido').length,
           notResolved=visibleRecords.filter(r=>r.status==='nao_resolvido').length, pending=visibleRecords.filter(r=>r.status==='pendente').length;
@@ -608,6 +753,32 @@
         const resolvedPct=percentage(resolved), notResolvedPct=percentage(notResolved), pendingPct=percentage(pending);
         $('totalStat').textContent=total; $('resolvedStat').textContent=resolved;
         $('notResolvedStat').textContent=notResolved; $('pendingStat').textContent=pending;
+        const newCases=visibleRecords.filter(c=>!c.isReturn);
+        const returned=visibleRecords.filter(c=>c.isReturn);
+        const withReturn=newCases.filter(c=>caseReturns(c.id).length>0);
+        const firstContact=newCases.filter(c=>c.status==='resolvido' && caseReturns(c.id).length===0);
+        $('newCasesStat').textContent=newCases.length;
+        $('returnsStat').textContent=returned.length;
+        $('casesWithReturnStat').textContent=withReturn.length;
+        $('firstContactStat').textContent=firstContact.length;
+        const recent=visibleRecords.filter(c=>recentTrainingOptions.includes(c.trainingRecent));
+        const trainingRoot=$('trainingBreakdown'); trainingRoot.replaceChildren();
+        for(const option of recentTrainingOptions){
+          const count=recent.filter(c=>c.trainingRecent===option).length;
+          const row=document.createElement('div');row.className='reason-row';
+          row.append(textElement('span',option),textElement('strong',String(count)));
+          trainingRoot.appendChild(row);
+        }
+        const outcomeRoot=$('trainingOutcome');outcomeRoot.replaceChildren();
+        for(const [label,state] of [['Resolvidos','resolvido'],['Não resolvidos','nao_resolvido'],['Pendentes','pendente']]){
+          const count=recent.filter(c=>c.status===state).length;
+          const row=document.createElement('div');row.className='reason-row';
+          row.append(textElement('span',label),textElement('strong',String(count)));outcomeRoot.appendChild(row);
+        }
+        const rateRecent=recent.filter(c=>c.status!=='pendente').length;
+        const info=document.createElement('p');info.className='train-note';
+        info.textContent=`${recent.length} contatos com treinamento recente; ${rateRecent?Math.round(recent.filter(c=>c.status==='resolvido').length/rateRecent*100)+'% de resolução entre concluídos':'sem concluídos com treinamento recente'}.`;
+        outcomeRoot.appendChild(info);
         $('donutCount').textContent=total;
         $('resolvedShare').textContent=`${resolvedPct}%`;
         $('notResolvedShare').textContent=`${notResolvedPct}%`;
@@ -615,7 +786,7 @@
         // Percentuais exatos garantem que os três segmentos somem 100%.
         const a=total ? resolved/total*100 : 0, b=total ? (resolved+notResolved)/total*100 : 0;
         $('donut').style.background=total ? `conic-gradient(var(--green) 0% ${a}%, var(--red) ${a}% ${b}%, var(--orange) ${b}% 100%)` : '#e4ebf0';
-        $('donut').setAttribute('aria-label', `Total ${total}; resolvidos ${resolved}; não resolvidos ${notResolved}; pendentes ${pending}`);
+        $('donut').setAttribute('aria-label', `Total ${total} contatos; resolvidos ${resolved}; não resolvidos ${notResolved}; pendentes ${pending}`);
         const max=Math.max(resolved,notResolved,pending,1);
         [['Resolved',resolved],['NotResolved',notResolved],['Pending',pending]].forEach(([key,count])=>{
           $(`bar${key}Number`).textContent=count; $(`bar${key}`).style.width=`${100*count/max}%`;
@@ -624,7 +795,7 @@
         $('rateText').textContent=concluded ? `Taxa de resolução dos concluídos: ${Math.round(resolved/concluded*100)}% (${resolved} de ${concluded})` : 'Taxa de resolução dos concluídos: — (nenhum concluído)';
         const reasonsRoot=$('reasonBreakdown'); reasonsRoot.replaceChildren();
         if (!notResolved) {
-          reasonsRoot.appendChild(textElement('p','Nenhum atendimento não resolvido registrado.','secondary'));
+          reasonsRoot.appendChild(textElement('p','Nenhum contato não resolvido registrado.','secondary'));
         } else {
           for (const reason of allowedReasons) {
             const count=visibleRecords.filter(r=>r.status==='nao_resolvido' && r.reason===reason).length;
@@ -657,6 +828,56 @@
         $('detailsReason').disabled = !isNotResolved;
         $('detailsReason').required = isNotResolved;
       }
+      function renderHistory(caseId) {
+        const r=findRecord(caseId), root=$('historyList'); if(!r || !root) return;
+        root.replaceChildren();
+        const items=[{...r,isReturn:false},...caseReturns(caseId).map(c=>({...c,isReturn:true}))];
+        for(const [i,c] of items.entries()){
+          const item=document.createElement('div');item.className='history-item'+(c.isReturn?' return':'');
+          const top=document.createElement('div');top.className='history-title';
+          top.appendChild(textElement('span',c.isReturn?`Retorno ${i}`:'1º contato'));
+          const statusLabel={pendente:'Pendente',resolvido:'Resolvido',nao_resolvido:'Não resolvido'}[c.status]||'Pendente';
+          top.appendChild(textElement('span',statusLabel,'mini-pill'));
+          item.appendChild(top);
+          const details=`${formatDate(c.createdAt)} · ${c.technician||'Técnico não informado'}`;
+          item.appendChild(textElement('div',details,'history-meta'));
+          if(c.equipment) item.appendChild(textElement('div',`Equipamento: ${c.equipment}`,'history-meta'));
+          if(c.trainingRecent) item.appendChild(textElement('div',`Treinamento recente: ${c.trainingRecent}`,'history-meta'));
+          if(c.reason) item.appendChild(textElement('div',`Motivo: ${c.reason}`,'history-meta'));
+          if(c.checked) item.appendChild(textElement('div','✓ Check de conferência realizado','history-meta'));
+          if(c.notes) item.appendChild(textElement('p',c.notes));
+          if(c.isReturn && !r.archived){
+            const edit=textElement('button','Editar este retorno','btn btn-sm');edit.type='button';edit.style.marginTop='9px';
+            edit.addEventListener('click',()=>openReturnDialog(caseId,c.id));item.appendChild(edit);
+          }
+          root.appendChild(item);
+        }
+        $('registerReturnBtn').disabled=r.archived;
+        $('newRelatedCaseBtn').disabled=r.archived;
+      }
+      function syncReturnReason() {
+        const isNotResolved=$('returnStatus').value==='nao_resolvido';
+        $('returnReasonField').classList.toggle('hidden',!isNotResolved);
+        $('returnReason').disabled=!isNotResolved;$('returnReason').required=isNotResolved;
+      }
+      function openReturnDialog(caseId,returnId=null,preferredStatus=null) {
+        const r=findRecord(caseId);if(!r || r.archived) return notify('Este caso está arquivado.',true);
+        activeRecordId=caseId;activeReturnId=returnId;
+        const c=returnId?returns.find(x=>x.id===returnId&&x.atendimentoId===caseId):null;
+        if(returnId && !c)return notify('Retorno não encontrado.',true);
+        $('returnDialogTitle').textContent=c?'Editar retorno':'Registrar retorno';
+        $('returnTechnician').value=c?.technician||r.technician||'João';
+        $('returnEquipment').value=c?.equipment||latestContact(r).equipment||r.equipment||'';
+        $('returnStatus').value=preferredStatus||c?.status||'pendente';
+        $('returnReason').value=c?.reason||'';
+        $('returnTrainingRecent').value=c?.trainingRecent||'';
+        $('returnChecked').checked=c?.checked===true;
+        $('returnNotes').value=c?.notes||'';
+        syncReturnReason();
+        if($('detailsDialog').open)$('detailsDialog').close();
+        $('returnDialog').showModal();
+      }
+
       function openDetails(id, preferredStatus) {
         const r = findRecord(id); if (!r) return;
         activeRecordId = id;
@@ -670,7 +891,12 @@
         $('detailsReason').value = r.reason || '';
         $('detailsChecked').checked = r.checked;
         $('detailsNotes').value = r.notes;
+        $('detailsTrainingRecent').value=r.trainingRecent||'';
+        $('detailsForm').querySelector('[type="submit"]').disabled=r.archived;
+        for(const el of $('detailsForm').querySelectorAll('input,select,textarea')) el.disabled=r.archived;
         syncDetailsReason();
+        if(r.archived) {$('detailsReason').disabled=true;}
+        renderHistory(id);
         $('detailsDialog').showModal();
       }
       function openEdit(id) {
@@ -685,12 +911,43 @@
         if(!client || !company || !phone || !allowedTechnicians.includes(technician)) return notify('Preencha nome, empresa, telefone e técnico.',true);
         const button=$('newForm').querySelector('[type="submit"]'); button.disabled=true;
         try {
-          await createOnline({id:uid(),createdAt:new Date().toISOString(),client,company,phone,technician,equipment:'',status:'pendente',reason:'',checked:false,notes:''});
+          await createOnline({id:uid(),createdAt:new Date().toISOString(),client,company,phone,technician,equipment:'',status:'pendente',reason:'',checked:false,notes:'',trainingRecent:'',archived:false});
           $('newForm').reset(); $('client').focus(); notify('Atendimento registrado no Firebase.');
         } catch(error) { notify(readableError(error),true); }
         finally { button.disabled=false; }
       });
       $('detailsStatus').addEventListener('change', syncDetailsReason);
+      $('returnStatus').addEventListener('change',syncReturnReason);
+      $('registerReturnBtn').addEventListener('click',()=>openReturnDialog(activeRecordId));
+      $('newRelatedCaseBtn').addEventListener('click',()=>{
+        const r=findRecord(activeRecordId);if(!r)return;
+        $('client').value=r.client;$('company').value=r.company;$('phone').value=r.phone;
+        $('technician').value=r.technician||'';
+        $('detailsDialog').close();
+        $('client').scrollIntoView({behavior:'smooth',block:'center'});
+        $('client').focus();
+        notify('Dados do cliente preenchidos. Cadastre o novo problema como outro atendimento.');
+      });
+      $('returnForm').addEventListener('submit',async e=>{
+        e.preventDefault();
+        const currentCase=findRecord(activeRecordId);
+        if(!currentCase || currentCase.archived) return notify('Este caso não está disponível.',true);
+        const status=$('returnStatus').value;
+        const reason=status==='nao_resolvido' ? $('returnReason').value : '';
+        if(!allowedStatuses.includes(status) || (status==='nao_resolvido'&&!allowedReasons.includes(reason)))return notify('Escolha o motivo do não resolvido.',true);
+        const payload={technician:$('returnTechnician').value,equipment:$('returnEquipment').value.trim(),status,reason,checked:$('returnChecked').checked,notes:$('returnNotes').value.trim(),trainingRecent:$('returnTrainingRecent').value};
+        if(!allowedTechnicians.includes(payload.technician))return notify('Selecione um técnico.',true);
+        const btn=$('returnSubmit');btn.disabled=true;
+        try{
+          if(activeReturnId) await updateReturnOnline(activeReturnId,payload);
+          else await saveReturnOnline({...payload,id:uid(),atendimentoId:activeRecordId,createdAt:new Date().toISOString()});
+          const caseId=activeRecordId;
+          $('returnDialog').close();
+          notify(activeReturnId?'Retorno atualizado.':'Retorno registrado, com histórico preservado.');
+          openDetails(caseId);
+        }catch(error){notify(readableError(error),true);}
+        finally{btn.disabled=false;}
+      });
       $('detailsForm').addEventListener('submit', async e=>{
         e.preventDefault();
         const status = $('detailsStatus').value;
@@ -703,7 +960,8 @@
           equipment:$('detailsEquipment').value.trim(),
           status, reason,
           checked:$('detailsChecked').checked,
-          notes:$('detailsNotes').value.trim()
+          notes:$('detailsNotes').value.trim(),
+          trainingRecent:$('detailsTrainingRecent').value
         });
         button.disabled=false;
         if (ok) { $('detailsDialog').close('save'); notify('Detalhes sincronizados no Firebase.'); }
@@ -724,7 +982,7 @@
         document.querySelectorAll('.page').forEach(p=>p.classList.toggle('hidden',p.id!==id));
         if(id==='dashboard') updateDashboard();
       }));
-      $('search').addEventListener('input',renderTable); $('filterStatus').addEventListener('change',renderTable); $('filterTechnician').addEventListener('change',renderTable);
+      $('search').addEventListener('input',renderTable); $('filterStatus').addEventListener('change',renderTable); $('filterTechnician').addEventListener('change',renderTable); $('filterArchive').addEventListener('change',renderTable);
       $('dashDateFrom').addEventListener('change', updateDashboard);
       $('dashDateFrom').addEventListener('input', updateDashboard);
       $('dashDateTo').addEventListener('change', updateDashboard);
@@ -740,29 +998,31 @@
       }
       // Gera PDF A4 em uma página, sem serviços externos nem bibliotecas adicionais.
       // O relatório é desenhado em canvas e incorporado como imagem JPEG em um PDF válido.
-      function makePdfBlob(canvas) {
-        const dataURL=canvas.toDataURL('image/jpeg',0.91);
-        const binary=atob(dataURL.slice(dataURL.indexOf(',')+1));
-        const jpeg=new Uint8Array(binary.length);
-        for(let i=0;i<binary.length;i++)jpeg[i]=binary.charCodeAt(i);
-        const enc=new TextEncoder(), parts=[], offsets=[0];
-        let length=0;
-        function put(v){ const bytes=typeof v==='string' ? enc.encode(v) : v; parts.push(bytes); length+=bytes.length; }
-        function object(id,content){offsets[id]=length;put(`${id} 0 obj\n${content}\nendobj\n`.replaceAll('\\n','\n'));}
-        put('%PDF-1.4\n%PDF-Generated\n');
+      function makePdfBlob(canvases) {
+        const pages=Array.isArray(canvases)?canvases:[canvases];
+        const enc=new TextEncoder(),parts=[],offsets=[0];let length=0;
+        function put(v){const b=typeof v==='string'?enc.encode(v):v;parts.push(b);length+=b.length;}
+        function object(id,body){offsets[id]=length;put(`${id} 0 obj\n${body}\nendobj\n`);}
+        put('%PDF-1.4\n%SAT-Report\n');
         object(1,'<< /Type /Catalog /Pages 2 0 R >>');
-        object(2,'<< /Type /Pages /Kids [3 0 R] /Count 1 >>');
-        object(3,'<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595.28 841.89] /Resources << /XObject << /Im1 4 0 R >> >> /Contents 5 0 R >>');
-        offsets[4]=length;
-        put(`4 0 obj\n<< /Type /XObject /Subtype /Image /Width ${canvas.width} /Height ${canvas.height} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${jpeg.length} >>\nstream\n`.replaceAll('\\n','\n'));
-        put(jpeg);
-        put('\nendstream\nendobj\n'.replaceAll('\\n','\n'));
-        const stream='q\n595.28 0 0 841.89 0 0 cm\n/Im1 Do\nQ\n'.replaceAll('\\n','\n');
-        object(5,`<< /Length ${enc.encode(stream).length} >>\nstream\n${stream}endstream`.replaceAll('\\n','\n'));
-        const xref=length;
-        put('xref\n0 6\n0000000000 65535 f \n'.replaceAll('\\n','\n'));
-        for(let i=1;i<=5;i++)put(`${String(offsets[i]).padStart(10,'0')} 00000 n \n`.replaceAll('\\n','\n'));
-        put(`trailer\n<< /Size 6 /Root 1 0 R >>\nstartxref\n${xref}\n%%EOF\n`.replaceAll('\\n','\n'));
+        const ids=pages.map((_,i)=>3+3*i);
+        object(2,`<< /Type /Pages /Kids [${ids.map(x=>x+' 0 R').join(' ')}] /Count ${pages.length} >>`);
+        pages.forEach((canvas,i)=>{
+          const page=3+i*3, img=page+1, streamId=page+2;
+          object(page,`<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595.28 841.89] /Resources << /XObject << /Im1 ${img} 0 R >> >> /Contents ${streamId} 0 R >>`);
+          const data=canvas.toDataURL('image/jpeg',0.88);
+          const binary=atob(data.slice(data.indexOf(',')+1));
+          const jpeg=new Uint8Array(binary.length);for(let j=0;j<binary.length;j++)jpeg[j]=binary.charCodeAt(j);
+          offsets[img]=length;
+          put(`${img} 0 obj\n<< /Type /XObject /Subtype /Image /Width ${canvas.width} /Height ${canvas.height} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${jpeg.length} >>\nstream\n`);
+          put(jpeg);put('\nendstream\nendobj\n');
+          const stream='q\n595.28 0 0 841.89 0 0 cm\n/Im1 Do\nQ\n';
+          object(streamId,`<< /Length ${enc.encode(stream).length} >>\nstream\n${stream}endstream`);
+        });
+        const xref=length,total=2+pages.length*3;
+        put(`xref\n0 ${total+1}\n0000000000 65535 f \n`);
+        for(let j=1;j<=total;j++)put(`${String(offsets[j]).padStart(10,'0')} 00000 n \n`);
+        put(`trailer\n<< /Size ${total+1} /Root 1 0 R >>\nstartxref\n${xref}\n%%EOF\n`);
         return new Blob(parts,{type:'application/pdf'});
       }
       function generateDashboardPdf() {
@@ -806,7 +1066,7 @@
           rect(x+20,331,9,126,accent,5);label(name,x+43,358);txt(value,x+43,426,60,accent,'700');
         });
         panel(pad,505,usable,405);
-        txt('Distribuição dos atendimentos',95,553,28,color.navy,'700');
+        txt('Distribuição dos contatos',95,553,28,color.navy,'700');
         txt('Participação de cada situação no período selecionado',95,586,19,color.muted);
         const cx=292,cy=744,r=116;
         ctx.fillStyle='#e7edf3';ctx.beginPath();ctx.arc(cx,cy,r,0,Math.PI*2);ctx.fill();
@@ -818,7 +1078,7 @@
           }
         }
         ctx.fillStyle=color.white;ctx.beginPath();ctx.arc(cx,cy,77,0,Math.PI*2);ctx.fill();
-        txt(total,cx,752,45,color.navy,'700','center');txt('atendimentos',cx,781,17,color.muted,'400','center');
+        txt(total,cx,752,45,color.navy,'700','center');txt('contatos',cx,781,17,color.muted,'400','center');
         const segments=[['Resolvidos',resolved,color.green],['Não resolvidos',notResolved,color.red],['Pendentes',pending,color.orange]];
         segments.forEach(([name,n,c],i)=>{
           const y=657+i*86;
@@ -846,7 +1106,7 @@
           txt(count,664,y,20,color.navy,'700','right');
         });
         txt('Resultados por técnico',760,1110,25,color.navy,'700');
-        txt('Atendimentos abertos no período',760,1140,17,color.muted);
+        txt('Contatos registrados no período',760,1140,17,color.muted);
         rect(754,1169,395,42,color.navy,5);
         txt('Técnico',766,1197,18,color.white,'700');
         txt('Res.',952,1197,17,color.white,'700','right');
@@ -864,8 +1124,49 @@
         });
         line(pad,1644,usable);
         txt('SAT  •  Controle de Atendimentos',pad,1684,18,color.muted);
-        txt('Fonte: registros sincronizados no Firebase Firestore',1170,1684,17,color.muted,'400','right');
-        const blob=makePdfBlob(canvas);
+        txt('Fonte: contatos sincronizados no Firestore',1170,1684,17,color.muted,'400','right');
+        // Segunda página: recorrência e capacitação, respeitando o período filtrado.
+        const page2=document.createElement('canvas');page2.width=1240;page2.height=1754;
+        const c2=page2.getContext('2d');
+        c2.fillStyle='#f4f7fa';c2.fillRect(0,0,1240,1754);
+        c2.fillStyle=color.navy;c2.fillRect(0,0,1240,180);
+        const ptxt=(v,x,y,size=24,fill=color.ink,bold=false)=>{c2.fillStyle=fill;c2.font=`${bold?'700':'400'} ${size}px Arial`;c2.fillText(String(v),x,y);};
+        ptxt('SAT  /  CONTATOS E RETORNOS',76,65,19,'#f7bb7c',true);
+        ptxt('Reincidência e treinamento recente',76,121,39,'#ffffff',true);
+        ptxt(dashboardPeriodLabel(),76,230,24,color.navy,true);
+        const newCases=entries.filter(c=>!c.isReturn);
+        const returnContacts=entries.filter(c=>c.isReturn);
+        const casesWithReturn=newCases.filter(c=>caseReturns(c.id).length>0);
+        const firstContact=newCases.filter(c=>c.status==='resolvido' && caseReturns(c.id).length===0);
+        const pdfStats=[['CASOS NOVOS',newCases.length],['CONTATOS DE RETORNO',returnContacts.length],['CASOS COM RETORNO',casesWithReturn.length],['RESOLVIDOS SEM RETORNO',firstContact.length]];
+        pdfStats.forEach(([name,count],i)=>{
+          const x=68+(i%2)*561,y=285+Math.floor(i/2)*150;
+          c2.fillStyle='#ffffff';c2.fillRect(x,y,544,128);
+          c2.fillStyle=color.muted;c2.font='700 19px Arial';c2.fillText(name,x+23,y+37);
+          c2.fillStyle=color.navy;c2.font='700 60px Arial';c2.fillText(count,x+23,y+102);
+        });
+        ptxt('Treinamento recente — faixa informada por contato',76,671,28,color.navy,true);
+        ptxt('Categorias exclusivas na contagem; campo não obrigatório.',76,708,19,color.muted);
+        const training=entries.filter(c=>recentTrainingOptions.includes(c.trainingRecent));
+        recentTrainingOptions.forEach((name,i)=>{
+          const y=780+i*100;
+          c2.fillStyle=i%2?'#ffffff':'#edf2f6';c2.fillRect(70,y-48,1100,86);
+          ptxt(name,93,y,24,color.ink);
+          c2.textAlign='right';ptxt(training.filter(c=>c.trainingRecent===name).length,1133,y,27,color.navy,true);c2.textAlign='left';
+        });
+        const trainingResolved=training.filter(c=>c.status==='resolvido').length;
+        const trainingUnresolved=training.filter(c=>c.status==='nao_resolvido').length;
+        const trainingPending=training.filter(c=>c.status==='pendente').length;
+        const y=1250;
+        ptxt('Resultados entre contatos com treinamento recente',76,y,27,color.navy,true);
+        ptxt(`Resolvidos: ${trainingResolved}    Não resolvidos: ${trainingUnresolved}    Pendentes: ${trainingPending}`,76,y+64,23,color.ink);
+        ptxt(`Sem treinamento recente informado: ${entries.length-training.length} contatos`,76,y+115,22,color.muted);
+        c2.fillStyle='#fff8eb';c2.fillRect(70,1462,1100,142);
+        ptxt('Critério dos indicadores',94,1502,21,color.navy,true);
+        ptxt('Cada contato conta na data em que ocorreu. Um retorno não altera o resultado do contato inicial.',94,1540,17,color.ink);
+        ptxt('"Sem retorno" significa somente que não há retorno registrado até a exportação.',94,1576,17,color.ink);
+        ptxt('Fonte: Firebase Firestore  |  Gerado em '+generated,76,1687,17,color.muted);
+        const blob=makePdfBlob([canvas,page2]);
         const from=$('dashDateFrom').value||'inicio', to=$('dashDateTo').value||'fim';
         const name=`indicadores_atendimentos_${from}_${to}.pdf`;
         const url=URL.createObjectURL(blob);
@@ -881,14 +1182,18 @@
         return '"'+text.replaceAll('"','""')+'"';
       }
       $('exportCsv').addEventListener('click',()=>{
-        const cols=['Data','Cliente / Contato','Empresa','Telefone','Técnico','Equipamento','Conclusão','Motivo do não resolvido','Check','Observações'];
+        const cols=['Data do contato','Tipo','ID do caso','Cliente / Contato','Empresa','Telefone','Técnico','Equipamento','Conclusão','Motivo do não resolvido','Treinamento recente','Check','Observações','Arquivado'];
         const labels={pendente:'Pendente',resolvido:'Resolvido',nao_resolvido:'Não resolvido'};
-        const rows=records.map(r=>[formatDate(r.createdAt),r.client,r.company,r.phone,r.technician,r.equipment,labels[r.status],r.reason,r.checked?'Sim':'Não',r.notes]);
+        const baseById=new Map(records.map(r=>[r.id,r]));
+        const rows=[...records.map(r=>({...r,isReturn:false,atendimentoId:r.id})),...returns.map(r=>({...r,isReturn:true}))].map(c=>{
+          const root=baseById.get(c.atendimentoId)||{};
+          return [formatDate(c.createdAt),c.isReturn?'Retorno':'Inicial',c.atendimentoId,root.client||'',root.company||'',root.phone||'',c.technician,c.equipment,labels[c.status],c.reason,c.trainingRecent||'',c.checked?'Sim':'Não',c.notes,root.archived?'Sim':'Não'];
+        });
         const csv='\ufeff'+[cols,...rows].map(row=>row.map(csvValue).join(';')).join('\r\n');
         download(datedFilename('atendimentos','csv'),csv,'text/csv;charset=utf-8');notify('Planilha CSV exportada.');
       });
       $('backupJson').addEventListener('click',()=>{
-        download(datedFilename('backup_atendimentos','json'),JSON.stringify({version:3,exportedAt:new Date().toISOString(),records},null,2),'application/json;charset=utf-8');
+        download(datedFilename('backup_atendimentos','json'),JSON.stringify({version:5,exportedAt:new Date().toISOString(),records,returns},null,2),'application/json;charset=utf-8');
         notify('Backup completo exportado.');
       });
       $('importJson').addEventListener('click',()=>$('backupFile').click());
@@ -900,14 +1205,23 @@
           const items=Array.isArray(parsed) ? parsed : parsed?.records;
           if(!Array.isArray(items)) throw new Error('Formato de backup incompatível.');
           if(items.length>50000) throw new Error('Backup muito grande para esta versão.');
+          const returnsRaw=Array.isArray(parsed?.returns) ? parsed.returns : [];
+          if(returnsRaw.length>50000) throw new Error('Backup de retornos muito grande.');
+          const importedReturns=returnsRaw.map(cleanReturn).filter(Boolean);
+          if(importedReturns.length!==returnsRaw.length) throw new Error('Existem retornos inválidos no backup.');
           const imported=items.map(cleanRecord).filter(Boolean);
           if(imported.length!==items.length) throw new Error('Existem atendimentos inválidos no arquivo.');
           const ids=new Set(imported.map(r=>r.id));
           if(ids.size!==imported.length) throw new Error('Existem IDs duplicados no arquivo.');
           const presentIds=new Set(records.map(r=>r.id));
           const newRecords=imported.filter(r=>!presentIds.has(r.id));
-          if (!newRecords.length) { notify('Nenhum registro novo encontrado no backup.'); return; }
-          if(!window.confirm(`Adicionar ${newRecords.length} atendimentos do backup ao Firebase? ${imported.length-newRecords.length} já existem e serão preservados. Nenhum atendimento atual será apagado.`))return;
+          const presentReturnIds=new Set(returns.map(r=>r.id));
+          const newReturns=importedReturns.filter(r=>!presentReturnIds.has(r.id));
+          if(new Set(importedReturns.map(r=>r.id)).size!==importedReturns.length)throw new Error('IDs de retornos duplicados no backup.');
+          const validCaseIds=new Set([...records,...newRecords].map(r=>r.id));
+          if(newReturns.some(r=>!validCaseIds.has(r.atendimentoId)))throw new Error('Backup contém retornos sem atendimento original.');
+          if (!newRecords.length && !newReturns.length) { notify('Nenhum registro novo encontrado no backup.'); return; }
+          if(!window.confirm(`Adicionar ${newRecords.length} atendimentos e ${newReturns.length} retornos ao Firebase? Nenhum registro existente será substituído.`))return;
           $('importJson').disabled=true;
           try {
             // Até 300 gravações por lote; mantém os registros atuais intactos.
@@ -916,7 +1230,12 @@
               for (const item of newRecords.slice(i,i+300)) batch.set(doc(db,'atendimentos',item.id),item);
               await batch.commit();
             }
-            notify(`${newRecords.length} atendimentos importados para a nuvem.`);
+            for(let i=0;i<newReturns.length;i+=300){
+              const batch=writeBatch(db);
+              for(const item of newReturns.slice(i,i+300)) batch.set(doc(db,'retornos',item.id),item);
+              await batch.commit();
+            }
+            notify(`${newRecords.length} atendimentos e ${newReturns.length} retornos importados.`);
           } finally { $('importJson').disabled=false; }
         } catch(error){notify(`Erro na importação: ${error.message}`,true);}
         finally{e.target.value='';}
