@@ -1,35 +1,36 @@
-# Controle de Atendimentos SAT — V5: retornos e treinamento recente
+# Controle de Atendimentos SAT — V6
 
-## O que mudou
+## Novidades
 
-- **Registrar retorno**: dentro de Detalhes, abre um formulário para um novo contato pelo **mesmo problema**, com técnico, equipamento, status, motivo de não resolução, check, observações e treinamento recente. A data e hora do retorno são registradas automaticamente. O atendimento original não é sobrescrito.
-- **Novo problema**: dentro de Detalhes, preenche os dados do cliente no formulário de novo atendimento para um caso independente.
-- **Histórico cronológico**: contato inicial + retornos. É possível editar o resultado e as observações de cada retorno, preservando a data original daquele contato.
-- **Treinamento recente (opcional)**: Menos de 1 semana; Menos de 3 semanas; Menos de 1 mês; Menos de 6 meses. Deixe em branco para treinamentos antigos, desconhecidos ou não aplicáveis. Cada contato pode ter sua própria faixa.
-- **Dashboard**: dados separados de casos novos, contatos de retorno, casos com retorno registrado e casos resolvidos no primeiro contato sem retorno registrado até a exportação; resultados por técnico, motivos, distribuição por treinamento recente. O filtro por data considera a data **de cada contato**, inclusive retornos.
-- **PDF**: 2 páginas A4, com resumo dos contatos e indicadores de retornos/treinamento.
-- **Backups**: V5 inclui `records` e `returns`. Importa backups antigos V3/V4 (que só têm `records`).
-- **Arquivar / Restaurar**: substitui a exclusão definitiva para não perder o histórico. A tabela pode alternar entre Ativos e Arquivados. Arquivados não contam no dashboard.
+A tela de detalhes do atendimento inicial e a tela de retorno agora incluem:
 
-## Publicar sem perder os dados
+1. **Conclusão: Resolvido** — campo obrigatório **Como foi resolvido?**, com `Troca em garantia` ou `Ajustes remotos`.
+2. **Interferência comercial?** — seleção opcional; ao marcar, aparece **Vendedor envolvido** para digitar o nome (obrigatório enquanto a opção estiver marcada).
+3. **Cliente transferido para outro setor?** — seleção opcional e independente da conclusão; ao marcar, aparece a lista de destino: `Venda de cartuchos`, `SDR`, `Pós vendas`, `SMI`, `Financeiro`.
 
-1. Abra Firebase Console → **projeto `controle-atendimentos-sat`** → Firestore Database → Regras.
-2. Copie as regras atuais para backup. Substitua pelo **`firestore.rules` deste pacote** e clique em **Publicar**. Isso libera a coleção `retornos` e os campos `trainingRecent` e `archived` no esquema do atendimento. **Não apague nem recrie a coleção `atendimentos`.**
-3. Entre no **repositório GitHub do Controle de Atendimentos SAT** (não é o repositório de Pedidos). Substitua apenas `index.html` pelo arquivo V5 e confirme o commit na branch que publica o GitHub Pages.
-4. Os arquivos `firebase-config.js` e `.nojekyll` podem permanecer como estão. Foram incluídos novamente neste pacote apenas para instalação nova.
-5. Atualize a página publicada com Ctrl+F5. Teste primeiro usando um registro fictício.
+Os novos campos são exibidos no histórico do caso, exportação CSV, indicadores no dashboard e relatório PDF (terceira página).
 
-## Como interpretar indicadores
+A tabela principal mantém o layout simples. Ao escolher **Resolvido** ou **Não resolvido** diretamente na tabela, o sistema abre os detalhes para preencher a classificação correspondente.
 
-- **Casos novos**: cada cadastro inicial (na data de abertura).
-- **Contatos de retorno**: cada retorno vinculado àquele caso (na data de retorno).
-- **Total de contatos**: casos iniciais + retornos dentro do filtro de datas.
-- **Casos com retorno registrado**: dos casos **abertos no período**, quantos têm retorno registrado em qualquer data, inclusive posterior ao período.
-- **Resolvidos no primeiro contato, sem retorno registrado**: dos casos **abertos no período**, aqueles cujo primeiro contato foi marcado como resolvido e que ainda não possuem retorno registrado. É um indicador observacional, não prova de resolução definitiva.
-- **Treinamento recente**: faixas classificatórias selecionadas pelo técnico. Não inclua treinamentos antigos ou de idade desconhecida; deixe em branco. Faixas não são somadas entre si.
+## Atualizar o sistema online (Firebase + GitHub Pages)
 
-## Segurança — importante
+1. Exporte **Backup** dos atendimentos no sistema atual e guarde-o em segurança.
+2. No Firebase do SAT (**controle-atendimentos-sat**), acesse **Firestore Database → Regras**. Copie as regras atuais como backup, depois cole as novas regras contidas em `firestore.rules` e clique em **Publicar**.
+3. No GitHub do **Controle de Atendimentos SAT**, substitua **apenas `index.html`** pelo novo arquivo. Não altere `firebase-config.js`, e não use o projeto Firebase do painel de pedidos.
+4. Aguarde o GitHub Pages publicar a atualização e recarregue o site com **Ctrl + F5**.
+5. Teste com dados fictícios: marcar resolvido e selecionar modalidade; habilitar interferência comercial e informar vendedor; transferir para um setor; registrar um retorno com as mesmas opções; verificar o histórico, dashboard, CSV e PDF.
 
-O SAT continua **sem tela de login**, utilizando Firebase Authentication anônimo. Os dados NÃO são privados: qualquer pessoa com acesso ao link pode ler e alterar informações, e a autenticação anônima **não identifica quem realizou cada alteração**. Use dados fictícios durante testes; não coloque telefones, nomes ou dados reais de clientes antes de restringir o acesso.
+**Compatibilidade:** os campos novos são opcionais para documentos anteriores à V6. Um atendimento antigo já resolvido pode aparecer como `Não informada (registro antigo)` no dashboard até ser reclassificado. A interface exige modalidade sempre que um atendimento resolvido for salvo pelos detalhes.
 
-Não foram feitas alterações no Firebase real ou no GitHub automaticamente: o pacote está pronto para publicação manual.
+**Importante:** o SAT continua com autenticação anônima, sem login individual. Quem tiver acesso ao endereço público pode utilizar o painel. Não coloque dados reais de clientes sem implementar uma restrição de acesso adequada.
+
+## Arquivos
+
+- `index.html`: aplicativo atualizado, incluindo o dashboard e o PDF.
+- `firebase-config.js`: configuração do projeto SAT já utilizada antes; **não precisa mudar** no GitHub.
+- `firestore.rules`: regras atualizadas de `atendimentos` e `retornos`.
+- `.nojekyll`: auxiliar do GitHub Pages.
+
+## Validação
+
+A estrutura HTML, a sintaxe JavaScript, a lógica de seleção condicional e a leitura de registros legados foram verificadas localmente. A sincronização com seu Firebase real e o fluxo no GitHub Pages precisam ser validados após a publicação.

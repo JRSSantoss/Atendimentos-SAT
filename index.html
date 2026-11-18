@@ -162,6 +162,15 @@
     .dashboard-filter .btn:disabled{opacity:.5;cursor:not-allowed}
     @media(max-width:620px){.dashboard-filter{padding:15px;align-items:stretch}.dashboard-filter-fields{display:grid;grid-template-columns:1fr 1fr;gap:9px}.dashboard-filter-fields .field{min-width:0}.dashboard-filter-actions{width:100%}.dashboard-filter-actions .btn{flex:1}.dashboard-period-caption{line-height:1.5}}
 
+    /* Resolução, intervenção comercial e transferência — V6 */
+    .conditional-block{display:grid;gap:12px;padding:13px 15px;border:1px solid #dce7ee;border-radius:9px;background:#f8fafc}
+    .conditional-block .field{max-width:100%}
+    .conditional-block:has(input[type=checkbox]:checked){border-color:#a7c8df;background:#f2f8fc}
+    .conditional-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+    .conditional-grid > .field {grid-column:1/-1}
+    .section-mini-title{font-size:12px;font-weight:750;color:var(--navy);margin:0 0 6px}
+    @media(max-width:550px){.conditional-grid{grid-template-columns:1fr}}
+
     /* Retornos e treinamento recente — V5 */
     .record-details{width:min(790px,calc(100vw - 24px))}
     .history-wrap{margin-top:3px;padding:16px;border:1px solid #dce7ee;border-radius:10px;background:#f8fafc}
@@ -243,7 +252,7 @@
             <input id="backupFile" type="file" accept=".json,application/json" class="hidden">
           </div>
         </div>
-        <p class="table-hint">Dê <strong>dois cliques</strong> para abrir detalhes, histórico de contatos, retornos e treinamento recente. No celular, use o botão “Detalhes”.</p>
+        <p class="table-hint">Dê <strong>dois cliques</strong> para abrir detalhes, retornos, treinamento, interferência comercial e transferências. No celular, use o botão “Detalhes”.</p>
         <div class="table-wrap">
           <table aria-label="Tabela de atendimentos">
             <thead><tr><th>Data</th><th>Cliente</th><th>Empresa</th><th>Telefone</th><th>Técnico</th><th>Equipamento</th><th>Conclusão</th><th>Ações</th></tr></thead>
@@ -311,6 +320,10 @@
         <article class="panel dash-panel"><h3>Treinamento recente × contatos</h3><p>Período selecionado em cada contato. Campo opcional; as faixas são categorias declaradas, sem sobreposição na contagem.</p><div id="trainingBreakdown" class="reason-list"></div></article>
         <article class="panel dash-panel"><h3>Resultado nos contatos com treinamento recente</h3><p>Considera somente contatos com faixa informada.</p><div id="trainingOutcome" class="reason-list"></div><p class="train-note">Sem seleção = treinamento antigo, desconhecido ou não aplicável. Não é classificado como recente.</p></article>
       </div>
+      <div class="dash-grid">
+        <article class="panel dash-panel"><h3>Formas de resolução</h3><p>Contatos resolvidos por troca em garantia ou ajustes remotos.</p><div id="resolutionBreakdown" class="reason-list"></div></article>
+        <article class="panel dash-panel"><h3>Interferência comercial e transferências</h3><p>Contatos com participação do vendedor e encaminhamentos para outros setores.</p><div id="transferBreakdown" class="reason-list"></div></article>
+      </div>
     </section>
   </div>
 
@@ -344,6 +357,23 @@
           <option value="Procedimentos incorretos">Procedimentos incorretos</option>
           <option value="Sem continuidade do atendimento">Sem continuidade do atendimento</option>
         </select></label>
+        <label class="field hidden" id="detailsResolutionTypeField"><span>Como foi resolvido? *</span><select id="detailsResolutionType" disabled>
+          <option value="">Selecione a forma de resolução...</option>
+          <option value="Troca em garantia">Troca em garantia</option>
+          <option value="Ajustes remotos">Ajustes remotos</option>
+        </select></label>
+        <div class="conditional-block">
+          <label class="detail-check"><input id="detailsCommercialInterference" type="checkbox"><span>Interferência comercial?<small>Marque quando o setor comercial tiver participado do caso.</small></span></label>
+          <label class="field hidden" id="detailsCommercialSellerField"><span>Vendedor envolvido *</span><input id="detailsCommercialSeller" maxlength="120" placeholder="Nome do vendedor" disabled></label>
+        </div>
+        <div class="conditional-block">
+          <label class="detail-check"><input id="detailsTransferred" type="checkbox"><span>Cliente transferido para outro setor?<small>Pode ser marcado independentemente da conclusão.</small></span></label>
+          <label class="field hidden" id="detailsTransferSectorField"><span>Setor de destino *</span><select id="detailsTransferSector" disabled>
+            <option value="">Selecione o setor...</option>
+            <option value="Venda de cartuchos">Venda de cartuchos</option><option value="SDR">SDR</option>
+            <option value="Pós vendas">Pós vendas</option><option value="SMI">SMI</option><option value="Financeiro">Financeiro</option>
+          </select></label>
+        </div>
         <label class="field"><span>Treinamento recente (opcional)</span><select id="detailsTrainingRecent"><option value="">Não informado / não se aplica</option><option value="Menos de 1 semana">Menos de 1 semana</option><option value="Menos de 3 semanas">Menos de 3 semanas</option><option value="Menos de 1 mês">Menos de 1 mês</option><option value="Menos de 6 meses">Menos de 6 meses</option></select><span class="train-note">Selecione a faixa correspondente ao treinamento do operador na data deste contato.</span></label>
 
         <hr class="detail-separator">
@@ -371,6 +401,15 @@
           <label class="field"><span>Treinamento recente (opcional)</span><select id="returnTrainingRecent"><option value="">Não informado / não se aplica</option><option value="Menos de 1 semana">Menos de 1 semana</option><option value="Menos de 3 semanas">Menos de 3 semanas</option><option value="Menos de 1 mês">Menos de 1 mês</option><option value="Menos de 6 meses">Menos de 6 meses</option></select></label>
         </div>
         <label class="field hidden" id="returnReasonField"><span>Motivo do não resolvido *</span><select id="returnReason"><option value="">Selecione o motivo...</option><option>Manutenção eletrônica</option><option>Manutenção mecânica</option><option>Falta de itens</option><option>Itens incorretos</option><option>Cartucho Vencido</option><option>Cartucho Avariado</option><option>Procedimentos incorretos</option><option>Sem continuidade do atendimento</option></select></label>
+        <label class="field hidden" id="returnResolutionTypeField"><span>Como foi resolvido? *</span><select id="returnResolutionType" disabled><option value="">Selecione a forma de resolução...</option><option value="Troca em garantia">Troca em garantia</option><option value="Ajustes remotos">Ajustes remotos</option></select></label>
+        <div class="conditional-block">
+          <label class="detail-check"><input id="returnCommercialInterference" type="checkbox"><span>Interferência comercial?<small>Identifique o vendedor quando houver participação comercial.</small></span></label>
+          <label class="field hidden" id="returnCommercialSellerField"><span>Vendedor envolvido *</span><input id="returnCommercialSeller" maxlength="120" placeholder="Nome do vendedor" disabled></label>
+        </div>
+        <div class="conditional-block">
+          <label class="detail-check"><input id="returnTransferred" type="checkbox"><span>Cliente transferido para outro setor?<small>Independentemente da conclusão do atendimento.</small></span></label>
+          <label class="field hidden" id="returnTransferSectorField"><span>Setor de destino *</span><select id="returnTransferSector" disabled><option value="">Selecione o setor...</option><option>Venda de cartuchos</option><option>SDR</option><option>Pós vendas</option><option>SMI</option><option>Financeiro</option></select></label>
+        </div>
         <label class="detail-check"><input id="returnChecked" type="checkbox"><span>Check de conferência</span></label>
         <label class="field"><span>Observações deste contato</span><textarea id="returnNotes" maxlength="10000" placeholder="O que o cliente relatou, os testes e as orientações neste retorno..."></textarea></label>
       </div>
@@ -405,6 +444,8 @@
       const allowedTechnicians = ['João', 'Ricardo'];
       const allowedReasons = ['Manutenção eletrônica','Manutenção mecânica','Falta de itens','Itens incorretos','Cartucho Vencido','Cartucho Avariado','Procedimentos incorretos','Sem continuidade do atendimento'];
       const recentTrainingOptions = ['Menos de 1 semana', 'Menos de 3 semanas', 'Menos de 1 mês', 'Menos de 6 meses'];
+      const allowedResolutionTypes = ['Troca em garantia', 'Ajustes remotos'];
+      const allowedTransferSectors = ['Venda de cartuchos', 'SDR', 'Pós vendas', 'SMI', 'Financeiro'];
       let returns = [];
       let activeReturnId = null;
       let unsubscribeReturns = null;
@@ -441,6 +482,11 @@
           checked: r.checked === true,
           notes: String(r.notes ?? '').slice(0, 10000),
           trainingRecent: recentTrainingOptions.includes(r.trainingRecent) ? r.trainingRecent : '',
+          resolutionType: status === 'resolvido' && allowedResolutionTypes.includes(r.resolutionType) ? r.resolutionType : '',
+          commercialInterference: r.commercialInterference === true,
+          commercialSeller: r.commercialInterference === true ? String(r.commercialSeller ?? '').slice(0, 120) : '',
+          transferred: r.transferred === true,
+          transferSector: r.transferred === true && allowedTransferSectors.includes(r.transferSector) ? r.transferSector : '',
           archived: r.archived === true
         };
       }
@@ -456,7 +502,12 @@
           reason: status === 'nao_resolvido' && allowedReasons.includes(r.reason) ? r.reason : '',
           checked: r.checked === true,
           notes: String(r.notes ?? '').slice(0, 10000),
-          trainingRecent: recentTrainingOptions.includes(r.trainingRecent) ? r.trainingRecent : ''
+          trainingRecent: recentTrainingOptions.includes(r.trainingRecent) ? r.trainingRecent : '',
+          resolutionType: status === 'resolvido' && allowedResolutionTypes.includes(r.resolutionType) ? r.resolutionType : '',
+          commercialInterference: r.commercialInterference === true,
+          commercialSeller: r.commercialInterference === true ? String(r.commercialSeller ?? '').slice(0, 120) : '',
+          transferred: r.transferred === true,
+          transferSector: r.transferred === true && allowedTransferSectors.includes(r.transferSector) ? r.transferSector : ''
         };
       }
       function caseReturns(caseId) { return returns.filter(r => r.atendimentoId === caseId).sort((a,b) => a.createdAt.localeCompare(b.createdAt)); }
@@ -475,7 +526,7 @@
       }
       function readableError(error) {
         const code = error?.code || '';
-        if (code === 'permission-denied') return 'Acesso negado pelo Firestore. Publique as regras V5 que incluem a coleção retornos no projeto SAT.';
+        if (code === 'permission-denied') return 'Acesso negado pelo Firestore. Publique as regras V6 para atendimentos e retornos no projeto SAT.';
         if (code === 'auth/operation-not-allowed') return 'Ative a opção Anônimo em Firebase Authentication > Sign-in method.';
         if (code === 'auth/too-many-requests') return 'O Firebase limitou os acessos anônimos temporariamente. Tente novamente mais tarde.';
         if (code === 'auth/network-request-failed' || code === 'unavailable') return 'Falha de conexão com o Firebase. Verifique a internet.';
@@ -671,15 +722,16 @@
           });
           select.value=current.status;
           select.addEventListener('change', async () => {
-            if (select.value === 'nao_resolvido') {
+            if (select.value === 'nao_resolvido' || select.value === 'resolvido') {
+              const selectedStatus=select.value;
               select.value=current.status;
-              if (current.isReturn) openReturnDialog(record.id,current.id,'nao_resolvido');
-              else openDetails(record.id,'nao_resolvido');
+              if (current.isReturn) openReturnDialog(record.id,current.id,selectedStatus);
+              else openDetails(record.id,selectedStatus);
               return;
             }
             try {
-              if (current.isReturn) await updateReturnOnline(current.id,{status:select.value,reason:''});
-              else await updateRecord(record.id,{status:select.value,reason:''});
+              if (current.isReturn) await updateReturnOnline(current.id,{status:select.value,reason:'',resolutionType:''});
+              else await updateRecord(record.id,{status:select.value,reason:'',resolutionType:''});
               notify('Conclusão do contato mais recente atualizada.');
             } catch(error) { notify(readableError(error),true); redraw(); }
           });
@@ -820,6 +872,17 @@
           }
           techRoot.appendChild(row);
         }
+        const resolvedBreakdown=$('resolutionBreakdown');resolvedBreakdown.replaceChildren();
+        for(const label of [...allowedResolutionTypes,'Não informado (registro antigo)']){
+          const n=visibleRecords.filter(c=>c.status==='resolvido' && (label==='Não informado (registro antigo)' ? !allowedResolutionTypes.includes(c.resolutionType) : c.resolutionType===label)).length;
+          const row=document.createElement('div');row.className='reason-row';row.append(textElement('span',label),textElement('strong',String(n)));resolvedBreakdown.appendChild(row);
+        }
+        const transferBreakdown=$('transferBreakdown');transferBreakdown.replaceChildren();
+        const commercial=visibleRecords.filter(c=>c.commercialInterference).length;
+        const transferred=visibleRecords.filter(c=>c.transferred).length;
+        for(const [label,n] of [['Com interferência comercial',commercial],['Transferidos para outro setor',transferred],...allowedTransferSectors.map(name=>['↳ '+name,visibleRecords.filter(c=>c.transferred && c.transferSector===name).length])]){
+          const row=document.createElement('div');row.className='reason-row';row.append(textElement('span',label),textElement('strong',String(n)));transferBreakdown.appendChild(row);
+        }
       }
       function redraw() { renderTable(); updateDashboard(); }
       function syncDetailsReason() {
@@ -827,6 +890,41 @@
         $('detailsReasonField').classList.toggle('hidden', !isNotResolved);
         $('detailsReason').disabled = !isNotResolved;
         $('detailsReason').required = isNotResolved;
+      }
+      function syncExtraFields(prefix) {
+        const resolved=$(prefix+'Status').value==='resolvido';
+        const isArchived=prefix==='details' && !!findRecord(activeRecordId)?.archived;
+        const resolution=$(prefix+'ResolutionType');
+        $(prefix+'ResolutionTypeField').classList.toggle('hidden',!resolved);
+        resolution.disabled=!resolved || isArchived;
+        resolution.required=resolved && !isArchived;
+        const commercial=$(prefix+'CommercialInterference').checked;
+        $(prefix+'CommercialSellerField').classList.toggle('hidden',!commercial);
+        $(prefix+'CommercialSeller').disabled=!commercial || isArchived;
+        $(prefix+'CommercialSeller').required=commercial && !isArchived;
+        const transferred=$(prefix+'Transferred').checked;
+        $(prefix+'TransferSectorField').classList.toggle('hidden',!transferred);
+        $(prefix+'TransferSector').disabled=!transferred || isArchived;
+        $(prefix+'TransferSector').required=transferred && !isArchived;
+      }
+      function readExtras(prefix, status){
+        const resolutionType=status==='resolvido' ? $(prefix+'ResolutionType').value : '';
+        const commercialInterference=$(prefix+'CommercialInterference').checked;
+        const commercialSeller=commercialInterference ? $(prefix+'CommercialSeller').value.trim() : '';
+        const transferred=$(prefix+'Transferred').checked;
+        const transferSector=transferred ? $(prefix+'TransferSector').value : '';
+        if(status==='resolvido' && !allowedResolutionTypes.includes(resolutionType)) throw new Error('Selecione Troca em garantia ou Ajustes remotos.');
+        if(commercialInterference && !commercialSeller)throw new Error('Informe o vendedor da interferência comercial.');
+        if(transferred && !allowedTransferSectors.includes(transferSector))throw new Error('Selecione o setor para o qual o cliente foi transferido.');
+        return {resolutionType,commercialInterference,commercialSeller,transferred,transferSector};
+      }
+      function fillExtras(prefix,contact){
+        $(prefix+'ResolutionType').value=contact?.resolutionType||'';
+        $(prefix+'CommercialInterference').checked=contact?.commercialInterference===true;
+        $(prefix+'CommercialSeller').value=contact?.commercialSeller||'';
+        $(prefix+'Transferred').checked=contact?.transferred===true;
+        $(prefix+'TransferSector').value=contact?.transferSector||'';
+        syncExtraFields(prefix);
       }
       function renderHistory(caseId) {
         const r=findRecord(caseId), root=$('historyList'); if(!r || !root) return;
@@ -844,6 +942,9 @@
           if(c.equipment) item.appendChild(textElement('div',`Equipamento: ${c.equipment}`,'history-meta'));
           if(c.trainingRecent) item.appendChild(textElement('div',`Treinamento recente: ${c.trainingRecent}`,'history-meta'));
           if(c.reason) item.appendChild(textElement('div',`Motivo: ${c.reason}`,'history-meta'));
+          if(c.status==='resolvido') item.appendChild(textElement('div',`Resolução: ${c.resolutionType || 'Não informada (registro antigo)'}`,'history-meta'));
+          if(c.commercialInterference) item.appendChild(textElement('div',`Interferência comercial · Vendedor: ${c.commercialSeller||'Não informado'}`,'history-meta'));
+          if(c.transferred) item.appendChild(textElement('div',`Transferido para: ${c.transferSector||'Não informado'}`,'history-meta'));
           if(c.checked) item.appendChild(textElement('div','✓ Check de conferência realizado','history-meta'));
           if(c.notes) item.appendChild(textElement('p',c.notes));
           if(c.isReturn && !r.archived){
@@ -874,6 +975,7 @@
         $('returnChecked').checked=c?.checked===true;
         $('returnNotes').value=c?.notes||'';
         syncReturnReason();
+        fillExtras('return',c);
         if($('detailsDialog').open)$('detailsDialog').close();
         $('returnDialog').showModal();
       }
@@ -895,6 +997,7 @@
         $('detailsForm').querySelector('[type="submit"]').disabled=r.archived;
         for(const el of $('detailsForm').querySelectorAll('input,select,textarea')) el.disabled=r.archived;
         syncDetailsReason();
+        fillExtras('details',r);
         if(r.archived) {$('detailsReason').disabled=true;}
         renderHistory(id);
         $('detailsDialog').showModal();
@@ -911,13 +1014,17 @@
         if(!client || !company || !phone || !allowedTechnicians.includes(technician)) return notify('Preencha nome, empresa, telefone e técnico.',true);
         const button=$('newForm').querySelector('[type="submit"]'); button.disabled=true;
         try {
-          await createOnline({id:uid(),createdAt:new Date().toISOString(),client,company,phone,technician,equipment:'',status:'pendente',reason:'',checked:false,notes:'',trainingRecent:'',archived:false});
+          await createOnline({id:uid(),createdAt:new Date().toISOString(),client,company,phone,technician,equipment:'',status:'pendente',reason:'',resolutionType:'',commercialInterference:false,commercialSeller:'',transferred:false,transferSector:'',checked:false,notes:'',trainingRecent:'',archived:false});
           $('newForm').reset(); $('client').focus(); notify('Atendimento registrado no Firebase.');
         } catch(error) { notify(readableError(error),true); }
         finally { button.disabled=false; }
       });
-      $('detailsStatus').addEventListener('change', syncDetailsReason);
-      $('returnStatus').addEventListener('change',syncReturnReason);
+      $('detailsStatus').addEventListener('change', ()=>{syncDetailsReason();syncExtraFields('details');});
+      $('returnStatus').addEventListener('change',()=>{syncReturnReason();syncExtraFields('return');});
+      for(const prefix of ['details','return']){
+        $(prefix+'CommercialInterference').addEventListener('change',()=>syncExtraFields(prefix));
+        $(prefix+'Transferred').addEventListener('change',()=>syncExtraFields(prefix));
+      }
       $('registerReturnBtn').addEventListener('click',()=>openReturnDialog(activeRecordId));
       $('newRelatedCaseBtn').addEventListener('click',()=>{
         const r=findRecord(activeRecordId);if(!r)return;
@@ -935,7 +1042,9 @@
         const status=$('returnStatus').value;
         const reason=status==='nao_resolvido' ? $('returnReason').value : '';
         if(!allowedStatuses.includes(status) || (status==='nao_resolvido'&&!allowedReasons.includes(reason)))return notify('Escolha o motivo do não resolvido.',true);
-        const payload={technician:$('returnTechnician').value,equipment:$('returnEquipment').value.trim(),status,reason,checked:$('returnChecked').checked,notes:$('returnNotes').value.trim(),trainingRecent:$('returnTrainingRecent').value};
+        let extras;
+        try{extras=readExtras('return',status);}catch(error){return notify(error.message,true);}
+        const payload={technician:$('returnTechnician').value,equipment:$('returnEquipment').value.trim(),status,reason,...extras,checked:$('returnChecked').checked,notes:$('returnNotes').value.trim(),trainingRecent:$('returnTrainingRecent').value};
         if(!allowedTechnicians.includes(payload.technician))return notify('Selecione um técnico.',true);
         const btn=$('returnSubmit');btn.disabled=true;
         try{
@@ -955,10 +1064,12 @@
         if (!allowedStatuses.includes(status) || (status === 'nao_resolvido' && !allowedReasons.includes(reason))) {
           notify('Selecione o motivo do atendimento não resolvido.',true); return;
         }
+        let extras;
+        try{extras=readExtras('details',status);}catch(error){return notify(error.message,true);}
         const button=$('detailsForm').querySelector('[type="submit"]'); button.disabled=true;
         const ok=await updateRecord(activeRecordId, {
           equipment:$('detailsEquipment').value.trim(),
-          status, reason,
+          status, reason, ...extras,
           checked:$('detailsChecked').checked,
           notes:$('detailsNotes').value.trim(),
           trainingRecent:$('detailsTrainingRecent').value
@@ -1166,7 +1277,32 @@
         ptxt('Cada contato conta na data em que ocorreu. Um retorno não altera o resultado do contato inicial.',94,1540,17,color.ink);
         ptxt('"Sem retorno" significa somente que não há retorno registrado até a exportação.',94,1576,17,color.ink);
         ptxt('Fonte: Firebase Firestore  |  Gerado em '+generated,76,1687,17,color.muted);
-        const blob=makePdfBlob([canvas,page2]);
+        // Terceira página: modalidades de resolução, participação comercial e transferências.
+        const page3=document.createElement('canvas');page3.width=1240;page3.height=1754;
+        const c3=page3.getContext('2d');
+        c3.fillStyle=color.light;c3.fillRect(0,0,1240,1754);
+        c3.fillStyle=color.navy;c3.fillRect(0,0,1240,180);
+        const p3=(v,x,y,size=23,col=color.ink,bold=false)=>{c3.fillStyle=col;c3.font=`${bold?'700':'400'} ${size}px Arial`;c3.fillText(String(v),x,y);};
+        p3('SAT  /  RESOLUÇÃO E ENCAMINHAMENTOS',76,63,19,'#f7bb7c',true);
+        p3('Interferência comercial e transferências',76,117,37,color.white,true);
+        p3(dashboardPeriodLabel(),76,232,23,color.navy,true);
+        const resolvedEntries=entries.filter(c=>c.status==='resolvido');
+        const resultRows=[...allowedResolutionTypes.map(label=>[label,resolvedEntries.filter(c=>c.resolutionType===label).length]),['Sem modalidade informada (legado)',resolvedEntries.filter(c=>!allowedResolutionTypes.includes(c.resolutionType)).length]];
+        const drawTable=(title,rows,startY)=>{
+          c3.fillStyle=color.white;c3.fillRect(68,startY,1104,75+rows.length*67);
+          p3(title,92,startY+47,27,color.navy,true);
+          rows.forEach(([label,n],i)=>{const y=startY+99+i*67;if(i%2===0){c3.fillStyle='#f2f5f8';c3.fillRect(85,y-43,1068,62);}p3(label,103,y,22,color.ink);c3.textAlign='right';p3(n,1122,y,26,color.navy,true);c3.textAlign='left';});
+        };
+        drawTable('Formas de resolução',resultRows,294);
+        const commercial=entries.filter(c=>c.commercialInterference).length;
+        const transferred=entries.filter(c=>c.transferred).length;
+        drawTable('Interferência comercial e transferências',[
+          ['Contatos com interferência comercial',commercial],
+          ['Contatos transferidos para outros setores',transferred],
+          ...allowedTransferSectors.map(label=>['  ↳ '+label,entries.filter(c=>c.transferred&&c.transferSector===label).length])
+        ],750);
+        p3('Os indicadores consideram os contatos registrados no período, inclusive retornos.',76,1669,18,color.muted);
+        const blob=makePdfBlob([canvas,page2,page3]);
         const from=$('dashDateFrom').value||'inicio', to=$('dashDateTo').value||'fim';
         const name=`indicadores_atendimentos_${from}_${to}.pdf`;
         const url=URL.createObjectURL(blob);
@@ -1182,18 +1318,18 @@
         return '"'+text.replaceAll('"','""')+'"';
       }
       $('exportCsv').addEventListener('click',()=>{
-        const cols=['Data do contato','Tipo','ID do caso','Cliente / Contato','Empresa','Telefone','Técnico','Equipamento','Conclusão','Motivo do não resolvido','Treinamento recente','Check','Observações','Arquivado'];
+        const cols=['Data do contato','Tipo','ID do caso','Cliente / Contato','Empresa','Telefone','Técnico','Equipamento','Conclusão','Motivo do não resolvido','Forma de resolução','Interferência comercial','Vendedor','Transferido','Setor destino','Treinamento recente','Check','Observações','Arquivado'];
         const labels={pendente:'Pendente',resolvido:'Resolvido',nao_resolvido:'Não resolvido'};
         const baseById=new Map(records.map(r=>[r.id,r]));
         const rows=[...records.map(r=>({...r,isReturn:false,atendimentoId:r.id})),...returns.map(r=>({...r,isReturn:true}))].map(c=>{
           const root=baseById.get(c.atendimentoId)||{};
-          return [formatDate(c.createdAt),c.isReturn?'Retorno':'Inicial',c.atendimentoId,root.client||'',root.company||'',root.phone||'',c.technician,c.equipment,labels[c.status],c.reason,c.trainingRecent||'',c.checked?'Sim':'Não',c.notes,root.archived?'Sim':'Não'];
+          return [formatDate(c.createdAt),c.isReturn?'Retorno':'Inicial',c.atendimentoId,root.client||'',root.company||'',root.phone||'',c.technician,c.equipment,labels[c.status],c.reason,c.resolutionType||'',c.commercialInterference?'Sim':'Não',c.commercialSeller||'',c.transferred?'Sim':'Não',c.transferSector||'',c.trainingRecent||'',c.checked?'Sim':'Não',c.notes,root.archived?'Sim':'Não'];
         });
         const csv='\ufeff'+[cols,...rows].map(row=>row.map(csvValue).join(';')).join('\r\n');
         download(datedFilename('atendimentos','csv'),csv,'text/csv;charset=utf-8');notify('Planilha CSV exportada.');
       });
       $('backupJson').addEventListener('click',()=>{
-        download(datedFilename('backup_atendimentos','json'),JSON.stringify({version:5,exportedAt:new Date().toISOString(),records,returns},null,2),'application/json;charset=utf-8');
+        download(datedFilename('backup_atendimentos','json'),JSON.stringify({version:6,exportedAt:new Date().toISOString(),records,returns},null,2),'application/json;charset=utf-8');
         notify('Backup completo exportado.');
       });
       $('importJson').addEventListener('click',()=>$('backupFile').click());
